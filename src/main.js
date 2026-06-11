@@ -10,13 +10,19 @@ import { fetchCloudList, downloadAndDecrypt, encryptAndUpload, deleteNote, gener
 import { TagManager } from './components/tags.js'; 
 import { CryptoCore } from './core/crypto.js';
 
-// ✅ 使用 esm.sh 动态加载 Milkdown，完美适配纯静态 Cloudflare Pages 环境
+// ----------------------------------------------------
+// ✒️ Milkdown 核心引擎与官方主题
+// ----------------------------------------------------
 import { Editor, rootCtx, defaultValueCtx, editorViewCtx, parserCtx, commandsCtx } from 'https://esm.sh/@milkdown/core';
 import { nord } from 'https://esm.sh/@milkdown/theme-nord';
 import { commonmark } from 'https://esm.sh/@milkdown/preset-commonmark';
 import { gfm } from 'https://esm.sh/@milkdown/preset-gfm';
 import { history } from 'https://esm.sh/@milkdown/plugin-history';
 import { listener, listenerCtx } from 'https://esm.sh/@milkdown/plugin-listener';
+
+// ----------------------------------------------------
+// 🪄 Slash 极客菜单与全套排版指令
+// ----------------------------------------------------
 import { slashFactory, SlashProvider } from 'https://esm.sh/@milkdown/plugin-slash';
 import { 
     wrapInHeadingCommand, 
@@ -30,10 +36,9 @@ import {
     insertTableCommand, 
     turnIntoTaskListCommand 
 } from 'https://esm.sh/@milkdown/preset-gfm';
-import { wrapInHeadingCommand, wrapInBlockquoteCommand, wrapInBulletListCommand } from 'https://esm.sh/@milkdown/preset-commonmark';
 
 // =========================================================================
-// 🧠 核心状态机 & 编辑器上下文
+// 🧠 核心状态机 (0 延迟架构的数据大本营)
 // =========================================================================
 const State = {
     globalFiles: [],         
