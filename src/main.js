@@ -11,7 +11,7 @@ import { TagManager } from './components/tags.js';
 import { CryptoCore } from './core/crypto.js';
 
 // ✅ 使用 esm.sh 动态加载 Milkdown，完美适配纯静态 Cloudflare Pages 环境
-import { Editor, rootCtx, defaultValueCtx } from 'https://esm.sh/@milkdown/core';
+import { Editor, rootCtx, defaultValueCtx, editorViewCtx, parserCtx } from 'https://esm.sh/@milkdown/core';
 import { nord } from 'https://esm.sh/@milkdown/theme-nord';
 import { commonmark } from 'https://esm.sh/@milkdown/preset-commonmark';
 import { gfm } from 'https://esm.sh/@milkdown/preset-gfm';
@@ -63,15 +63,20 @@ async function initMilkdown() {
 
 function setEditorContent(markdownStr) {
     if (!milkdownEditor) return;
-    // 强制替换当前编辑器内容
-    milkdownEditor.action((ctx) => {
-        const view = ctx.get(window.milkdown.editorViewCtx);
-        const { state } = view;
-        view.dispatch(state.tr.replaceWith(0, state.doc.content.size, state.schema.nodeFromJSON(
-            ctx.get(window.milkdown.parserCtx)(markdownStr)
-        )));
-    });
-    currentMarkdownContent = markdownStr;
+    try {
+        // 强制替换当前编辑器内容 (纯净 ESM 写法)
+        milkdownEditor.action((ctx) => {
+            const view = ctx.get(editorViewCtx);
+            const parser = ctx.get(parserCtx);
+            const doc = parser(markdownStr);
+            if (!doc) return;
+            const state = view.state;
+            view.dispatch(state.tr.replaceWith(0, state.doc.content.size, doc));
+        });
+        currentMarkdownContent = markdownStr;
+    } catch (e) {
+        console.error("❌ 编辑器内容渲染失败:", e);
+    }
 }
 
 function clearEditor() { setEditorContent(''); }
