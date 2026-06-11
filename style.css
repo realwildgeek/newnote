@@ -366,3 +366,38 @@ body {
     transform: scale(1.1); color: var(--text-muted); background: var(--bg-hover);
 }
 .status-bar-text { font-size: 13px; color: var(--text-muted); opacity: 0.7; }
+
+/* ==========================================
+   🪄 12. Slash Menu (极客唤醒菜单)
+   ========================================== */
+.geek-slash-menu {
+    position: absolute;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-dark);
+    border-radius: 8px;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.15);
+    padding: 6px;
+    z-index: 9999;
+    display: none; /* 核心魔法：默认隐身，由 Milkdown 的 Provider 掌管生死 */
+    flex-direction: column;
+    gap: 2px;
+    min-width: 160px;
+}
+.geek-slash-menu[data-show="true"] {
+    display: flex;
+}
+.slash-item {
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--text-main);
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    transition: 0.2s;
+    font-weight: 500;
+}
+.slash-item:hover {
+    background: var(--bg-hover);
+    color: var(--color-accent);
+}
