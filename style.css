@@ -502,3 +502,42 @@ body {
     border: 1px solid var(--border-light);
     margin: 16px 0;
 }
+
+/* ==========================================
+   🖱️ 14. 划词悬浮菜单 (Tooltip Menu)
+   ========================================== */
+.geek-tooltip-menu {
+    position: absolute;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-dark);
+    border-radius: 8px;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.15);
+    padding: 4px;
+    z-index: 9999;
+    display: none; /* 默认隐身，由 Provider 控制显示 */
+    gap: 4px;
+}
+.geek-tooltip-menu[data-show="true"] {
+    display: flex;
+}
+.tooltip-item {
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--text-main);
+    font-size: 14px;
+    font-weight: 600;
+    transition: 0.2s;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.tooltip-item:hover {
+    background: var(--bg-hover);
+    color: var(--color-accent);
+}
+/* 针对各个按键的特殊视觉微调 */
+.tooltip-item.italic { font-style: italic; font-family: serif; }
+.tooltip-item.strike { text-decoration: line-through; color: var(--text-muted); }
+.tooltip-item.code { font-family: monospace; background: var(--bg-body); padding: 4px 8px; border: 1px solid var(--border-medium); border-radius: 4px;}
