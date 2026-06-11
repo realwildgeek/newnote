@@ -21,19 +21,24 @@ import { history } from 'https://esm.sh/@milkdown/plugin-history';
 import { listener, listenerCtx } from 'https://esm.sh/@milkdown/plugin-listener';
 
 // ----------------------------------------------------
-// 🪄 Slash 极客菜单与全套排版指令
+// 🪄 极客排版指令与 UI 插件 (Slash & Tooltip)
 // ----------------------------------------------------
 import { slashFactory, SlashProvider } from 'https://esm.sh/@milkdown/plugin-slash';
+import { tooltipFactory, TooltipProvider } from 'https://esm.sh/@milkdown/plugin-tooltip'; // 👈 新增：悬浮菜单引擎
 import { 
     wrapInHeadingCommand, 
     wrapInBlockquoteCommand, 
     wrapInBulletListCommand, 
     wrapInOrderedListCommand, 
     insertHrCommand, 
-    createCodeBlockCommand 
+    createCodeBlockCommand,
+    toggleStrongCommand,     // 👈 新增：加粗
+    toggleEmphasisCommand,   // 👈 新增：斜体
+    toggleInlineCodeCommand  // 👈 新增：行内高亮
 } from 'https://esm.sh/@milkdown/preset-commonmark';
 import { 
     insertTableCommand, 
+    toggleStrikethroughCommand // 👈 新增：删除线
 } from 'https://esm.sh/@milkdown/preset-gfm';
 
 // =========================================================================
@@ -62,11 +67,8 @@ const defaultSystemTags = [
 // ✒️ 编辑器引擎方法集
 // =========================================================================
 async function initMilkdown() {
-    // 1. 铸造 Slash 插件工厂
+    // 1. 铸造 Slash (斜杠菜单) 引擎
     const slash = slashFactory('geek-slash');
-
-    // 2. 构造 UI 容器与指令分发器
-    
     function slashPluginView(view) {
         const content = document.createElement('div');
         content.className = 'geek-slash-menu';
@@ -121,9 +123,48 @@ async function initMilkdown() {
             update: (updatedView, prevState) => provider.update(updatedView, prevState),
             destroy: () => { provider.destroy(); content.remove(); },
         };
-    } // 👈 只有这里有一个闭合大括号，绝不能多写
+    } 
 
-    // 3. 引擎点火并装载 Slash
+    // 2. 🚀 新增：铸造 Tooltip (划词悬浮菜单) 引擎
+    const tooltip = tooltipFactory('geek-tooltip');
+    function tooltipPluginView(view) {
+        const content = document.createElement('div');
+        content.className = 'geek-tooltip-menu';
+        
+        // 渲染四个核心操作按钮
+        content.innerHTML = `
+            <div class="tooltip-item" data-cmd="strong" title="加粗 (Ctrl+B)">B</div>
+            <div class="tooltip-item italic" data-cmd="em" title="斜体 (Ctrl+I)">I</div>
+            <div class="tooltip-item strike" data-cmd="strike" title="删除线">S</div>
+            <div class="tooltip-item code" data-cmd="code" title="极客高亮">&lt;&gt;</div>
+        `;
+
+        content.addEventListener('mousedown', (e) => {
+            e.preventDefault(); // 防止点击按钮时失去文本焦点
+            const item = e.target.closest('.tooltip-item');
+            if (!item) return;
+            
+            const cmd = item.dataset.cmd;
+            milkdownEditor.action((ctx) => {
+                const commands = ctx.get(commandsCtx);
+                // 🚀 悬浮指令分发器
+                switch (cmd) {
+                    case 'strong': commands.call(toggleStrongCommand.key); break;
+                    case 'em': commands.call(toggleEmphasisCommand.key); break;
+                    case 'strike': commands.call(toggleStrikethroughCommand.key); break;
+                    case 'code': commands.call(toggleInlineCodeCommand.key); break;
+                }
+            });
+        });
+
+        const provider = new TooltipProvider({ content });
+        return {
+            update: (updatedView, prevState) => provider.update(updatedView, prevState),
+            destroy: () => { provider.destroy(); content.remove(); },
+        };
+    }
+
+    // 3. 引擎点火并装载所有插件
     milkdownEditor = await Editor.make()
         .config((ctx) => {
             ctx.set(rootCtx, document.querySelector('#milkdown-editor'));
@@ -131,15 +172,17 @@ async function initMilkdown() {
             ctx.get(listenerCtx).markdownUpdated((ctx, markdown) => {
                 currentMarkdownContent = markdown;
             });
-            // 绑定我们刚捏好的 Slash UI
+            // 绑定我们捏好的两个 UI
             ctx.set(slash.key, { view: slashPluginView });
+            ctx.set(tooltip.key, { view: tooltipPluginView }); // 👈 绑定悬浮菜单
         })
         .config(nord)
         .use(commonmark)
         .use(gfm)
         .use(history)
         .use(listener)
-        .use(slash) 
+        .use(slash)
+        .use(tooltip) // 👈 将悬浮菜单挂载到主线程
         .create();
 }
 
