@@ -124,8 +124,7 @@ async function initMilkdown() {
             update: (updatedView, prevState) => provider.update(updatedView, prevState),
             destroy: () => { provider.destroy(); content.remove(); },
         };
-    }
-}
+    } // 👈 只有这里有一个闭合大括号，绝不能多写
 
     // 3. 引擎点火并装载 Slash
     milkdownEditor = await Editor.make()
@@ -143,7 +142,7 @@ async function initMilkdown() {
         .use(gfm)
         .use(history)
         .use(listener)
-        .use(slash) // 👈 将插件挂载到主线程
+        .use(slash) 
         .create();
 }
 
