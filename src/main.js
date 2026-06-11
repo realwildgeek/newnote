@@ -10,13 +10,13 @@ import { fetchCloudList, downloadAndDecrypt, encryptAndUpload, deleteNote, gener
 import { TagManager } from './components/tags.js'; 
 import { CryptoCore } from './core/crypto.js';
 
-// Milkdown 核心依赖
-import { Editor, rootCtx, defaultValueCtx } from '@milkdown/core';
-import { nord } from '@milkdown/theme-nord';
-import { commonmark } from '@milkdown/preset-commonmark';
-import { gfm } from '@milkdown/preset-gfm';
-import { history } from '@milkdown/plugin-history';
-import { listener, listenerCtx } from '@milkdown/plugin-listener';
+// ✅ 使用 esm.sh 动态加载 Milkdown，完美适配纯静态 Cloudflare Pages 环境
+import { Editor, rootCtx, defaultValueCtx } from 'https://esm.sh/@milkdown/core';
+import { nord } from 'https://esm.sh/@milkdown/theme-nord';
+import { commonmark } from 'https://esm.sh/@milkdown/preset-commonmark';
+import { gfm } from 'https://esm.sh/@milkdown/preset-gfm';
+import { history } from 'https://esm.sh/@milkdown/plugin-history';
+import { listener, listenerCtx } from 'https://esm.sh/@milkdown/plugin-listener';
 
 // =========================================================================
 // 🧠 核心状态机 & 编辑器上下文
