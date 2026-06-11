@@ -34,7 +34,6 @@ import {
 } from 'https://esm.sh/@milkdown/preset-commonmark';
 import { 
     insertTableCommand, 
-    turnIntoTaskListCommand 
 } from 'https://esm.sh/@milkdown/preset-gfm';
 
 // =========================================================================
@@ -67,13 +66,14 @@ async function initMilkdown() {
     const slash = slashFactory('geek-slash');
 
     // 2. 构造 UI 容器与指令分发器
+    
     function slashPluginView(view) {
         const content = document.createElement('div');
         content.className = 'geek-slash-menu';
         
         // 🚀 满血版菜单 UI：增加了有序、任务、代码、分割线、表格
         content.innerHTML = `
-            <div style="font-size: 11px; color: var(--text-muted); padding: 4px 8px; font-weight: bold;">基础排版</div>
+        <div style="font-size: 11px; color: var(--text-muted); padding: 4px 8px; font-weight: bold;">基础排版</div>
             <div class="slash-item" data-cmd="h1"><span style="margin-right:8px; opacity:0.6;">#️⃣</span>大标题 (H1)</div>
             <div class="slash-item" data-cmd="h2"><span style="margin-right:8px; opacity:0.6;">##️⃣</span>中标题 (H2)</div>
             <div class="slash-item" data-cmd="h3"><span style="margin-right:8px; opacity:0.6;">###️⃣</span>小标题 (H3)</div>
@@ -83,11 +83,9 @@ async function initMilkdown() {
             <div style="font-size: 11px; color: var(--text-muted); padding: 8px 8px 4px 8px; font-weight: bold; border-top: 1px solid var(--border-light); margin-top: 4px;">列表与结构</div>
             <div class="slash-item" data-cmd="ul"><span style="margin-right:8px; opacity:0.6;">⏺</span>无序列表</div>
             <div class="slash-item" data-cmd="ol"><span style="margin-right:8px; opacity:0.6;">🔢</span>有序列表</div>
-            <div class="slash-item" data-cmd="task"><span style="margin-right:8px; opacity:0.6;">☑️</span>待办清单</div>
             <div class="slash-item" data-cmd="code"><span style="margin-right:8px; opacity:0.6;">💻</span>代码块</div>
             <div class="slash-item" data-cmd="table"><span style="margin-right:8px; opacity:0.6;">📊</span>插入表格</div>
         `;
-
         content.addEventListener('mousedown', (e) => {
             e.preventDefault(); 
             const item = e.target.closest('.slash-item');
@@ -102,8 +100,8 @@ async function initMilkdown() {
                 editorView.dispatch(state.tr.delete(state.selection.from - 1, state.selection.from));
                 
                 const commands = ctx.get(commandsCtx);
-                
-                // 🚀 满血版指令分发器
+
+                // 🚀 指令分发器：排除了内鬼，保留表格与代码块
                 switch (cmd) {
                     case 'h1': commands.call(wrapInHeadingCommand.key, 1); break;
                     case 'h2': commands.call(wrapInHeadingCommand.key, 2); break;
@@ -112,7 +110,6 @@ async function initMilkdown() {
                     case 'hr': commands.call(insertHrCommand.key); break;
                     case 'ul': commands.call(wrapInBulletListCommand.key); break;
                     case 'ol': commands.call(wrapInOrderedListCommand.key); break;
-                    case 'task': commands.call(turnIntoTaskListCommand.key); break;
                     case 'code': commands.call(createCodeBlockCommand.key); break;
                     case 'table': commands.call(insertTableCommand.key); break;
                 }
