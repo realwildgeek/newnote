@@ -114,7 +114,6 @@ async function initMilkdown() {
         .use(slash) // 👈 将插件挂载到主线程
         .create();
 }
-function clearEditor() { setEditorContent(''); }
 
 // =========================================================================
 // 🚀 系统启动点火序列
