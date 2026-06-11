@@ -6,7 +6,7 @@
 
 import { initUI, logStatus } from './components/ui.js';
 import { initTripleLayerSecurity, logout, getSession } from './core/auth.js';
-import { fetchCloudList, downloadAndDecrypt, encryptAndUpload, deleteNote, generateSystemFileId, updateCloudTags } from './core/file-system.js';
+import { fetchCloudList, downloadAndDecrypt, encryptAndUpload, deleteNote, generateSystemFileId, updateCloudTags } from './core/storage.js';
 import { TagManager } from './components/tags.js'; 
 import { CryptoCore } from './core/crypto.js';
 
