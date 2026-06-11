@@ -18,6 +18,18 @@ import { gfm } from 'https://esm.sh/@milkdown/preset-gfm';
 import { history } from 'https://esm.sh/@milkdown/plugin-history';
 import { listener, listenerCtx } from 'https://esm.sh/@milkdown/plugin-listener';
 import { slashFactory, SlashProvider } from 'https://esm.sh/@milkdown/plugin-slash';
+import { 
+    wrapInHeadingCommand, 
+    wrapInBlockquoteCommand, 
+    wrapInBulletListCommand, 
+    wrapInOrderedListCommand, 
+    insertHrCommand, 
+    createCodeBlockCommand 
+} from 'https://esm.sh/@milkdown/preset-commonmark';
+import { 
+    insertTableCommand, 
+    turnIntoTaskListCommand 
+} from 'https://esm.sh/@milkdown/preset-gfm';
 import { wrapInHeadingCommand, wrapInBlockquoteCommand, wrapInBulletListCommand } from 'https://esm.sh/@milkdown/preset-commonmark';
 
 // =========================================================================
@@ -53,14 +65,24 @@ async function initMilkdown() {
     function slashPluginView(view) {
         const content = document.createElement('div');
         content.className = 'geek-slash-menu';
+        
+        // 🚀 满血版菜单 UI：增加了有序、任务、代码、分割线、表格
         content.innerHTML = `
-            <div class="slash-item" data-cmd="h1"><span style="margin-right:8px">#️⃣</span>大标题 (H1)</div>
-            <div class="slash-item" data-cmd="h2"><span style="margin-right:8px">##️⃣</span>中标题 (H2)</div>
-            <div class="slash-item" data-cmd="ul"><span style="margin-right:8px">⏺</span>无序列表</div>
-            <div class="slash-item" data-cmd="quote"><span style="margin-right:8px">❞</span>引用块</div>
+            <div style="font-size: 11px; color: var(--text-muted); padding: 4px 8px; font-weight: bold;">基础排版</div>
+            <div class="slash-item" data-cmd="h1"><span style="margin-right:8px; opacity:0.6;">#️⃣</span>大标题 (H1)</div>
+            <div class="slash-item" data-cmd="h2"><span style="margin-right:8px; opacity:0.6;">##️⃣</span>中标题 (H2)</div>
+            <div class="slash-item" data-cmd="h3"><span style="margin-right:8px; opacity:0.6;">###️⃣</span>小标题 (H3)</div>
+            <div class="slash-item" data-cmd="quote"><span style="margin-right:8px; opacity:0.6;">❞</span>引用块</div>
+            <div class="slash-item" data-cmd="hr"><span style="margin-right:8px; opacity:0.6;">➖</span>分割线</div>
+            
+            <div style="font-size: 11px; color: var(--text-muted); padding: 8px 8px 4px 8px; font-weight: bold; border-top: 1px solid var(--border-light); margin-top: 4px;">列表与结构</div>
+            <div class="slash-item" data-cmd="ul"><span style="margin-right:8px; opacity:0.6;">⏺</span>无序列表</div>
+            <div class="slash-item" data-cmd="ol"><span style="margin-right:8px; opacity:0.6;">🔢</span>有序列表</div>
+            <div class="slash-item" data-cmd="task"><span style="margin-right:8px; opacity:0.6;">☑️</span>待办清单</div>
+            <div class="slash-item" data-cmd="code"><span style="margin-right:8px; opacity:0.6;">💻</span>代码块</div>
+            <div class="slash-item" data-cmd="table"><span style="margin-right:8px; opacity:0.6;">📊</span>插入表格</div>
         `;
 
-        // 监听点击并分发指令
         content.addEventListener('mousedown', (e) => {
             e.preventDefault(); 
             const item = e.target.closest('.slash-item');
@@ -71,29 +93,34 @@ async function initMilkdown() {
                 const editorView = ctx.get(editorViewCtx);
                 const { state } = editorView;
                 
-                // 物理抹除刚才敲入的触发器 "/" 字符
+                // 抹除触发器 "/"
                 editorView.dispatch(state.tr.delete(state.selection.from - 1, state.selection.from));
                 
-                // 发射排版指令
                 const commands = ctx.get(commandsCtx);
-                if (cmd === 'h1') commands.call(wrapInHeadingCommand.key, 1);
-                if (cmd === 'h2') commands.call(wrapInHeadingCommand.key, 2);
-                if (cmd === 'ul') commands.call(wrapInBulletListCommand.key);
-                if (cmd === 'quote') commands.call(wrapInBlockquoteCommand.key);
+                
+                // 🚀 满血版指令分发器
+                switch (cmd) {
+                    case 'h1': commands.call(wrapInHeadingCommand.key, 1); break;
+                    case 'h2': commands.call(wrapInHeadingCommand.key, 2); break;
+                    case 'h3': commands.call(wrapInHeadingCommand.key, 3); break;
+                    case 'quote': commands.call(wrapInBlockquoteCommand.key); break;
+                    case 'hr': commands.call(insertHrCommand.key); break;
+                    case 'ul': commands.call(wrapInBulletListCommand.key); break;
+                    case 'ol': commands.call(wrapInOrderedListCommand.key); break;
+                    case 'task': commands.call(turnIntoTaskListCommand.key); break;
+                    case 'code': commands.call(createCodeBlockCommand.key); break;
+                    case 'table': commands.call(insertTableCommand.key); break;
+                }
             });
         });
 
-        // 将 DOM 托付给 Milkdown 的位置追踪器
         const provider = new SlashProvider({ content });
-
         return {
             update: (updatedView, prevState) => provider.update(updatedView, prevState),
-            destroy: () => {
-                provider.destroy();
-                content.remove();
-            },
+            destroy: () => { provider.destroy(); content.remove(); },
         };
     }
+}
 
     // 3. 引擎点火并装载 Slash
     milkdownEditor = await Editor.make()
