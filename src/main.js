@@ -18,7 +18,7 @@ import { gfm } from 'https://esm.sh/@milkdown/preset-gfm';
 import { history } from 'https://esm.sh/@milkdown/plugin-history';
 import { listener, listenerCtx } from 'https://esm.sh/@milkdown/plugin-listener';
 import { slashFactory, SlashProvider } from 'https://esm.sh/@milkdown/plugin-slash';
-import { toggleHeadingCommand, wrapInBlockquoteCommand, wrapInBulletListCommand } from 'https://esm.sh/@milkdown/preset-commonmark';
+import { wrapInHeadingCommand, wrapInBlockquoteCommand, wrapInBulletListCommand } from 'https://esm.sh/@milkdown/preset-commonmark';
 
 // =========================================================================
 // 🧠 核心状态机 & 编辑器上下文
@@ -76,8 +76,8 @@ async function initMilkdown() {
                 
                 // 发射排版指令
                 const commands = ctx.get(commandsCtx);
-                if (cmd === 'h1') commands.call(toggleHeadingCommand.key, { level: 1 });
-                if (cmd === 'h2') commands.call(toggleHeadingCommand.key, { level: 2 });
+                if (cmd === 'h1') commands.call(wrapInHeadingCommand.key, 1);
+                if (cmd === 'h2') commands.call(wrapInHeadingCommand.key, 2);
                 if (cmd === 'ul') commands.call(wrapInBulletListCommand.key);
                 if (cmd === 'quote') commands.call(wrapInBlockquoteCommand.key);
             });
