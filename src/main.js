@@ -11,12 +11,14 @@ import { TagManager } from './components/tags.js';
 import { CryptoCore } from './core/crypto.js';
 
 // ✅ 使用 esm.sh 动态加载 Milkdown，完美适配纯静态 Cloudflare Pages 环境
-import { Editor, rootCtx, defaultValueCtx, editorViewCtx, parserCtx } from 'https://esm.sh/@milkdown/core';
+import { Editor, rootCtx, defaultValueCtx, editorViewCtx, parserCtx, commandsCtx } from 'https://esm.sh/@milkdown/core';
 import { nord } from 'https://esm.sh/@milkdown/theme-nord';
 import { commonmark } from 'https://esm.sh/@milkdown/preset-commonmark';
 import { gfm } from 'https://esm.sh/@milkdown/preset-gfm';
 import { history } from 'https://esm.sh/@milkdown/plugin-history';
 import { listener, listenerCtx } from 'https://esm.sh/@milkdown/plugin-listener';
+import { slashFactory, SlashProvider } from 'https://esm.sh/@milkdown/plugin-slash';
+import { toggleHeadingCommand, wrapInBlockquoteCommand, wrapInBulletListCommand } from 'https://esm.sh/@milkdown/preset-commonmark';
 
 // =========================================================================
 // 🧠 核心状态机 & 编辑器上下文
@@ -44,41 +46,74 @@ const defaultSystemTags = [
 // ✒️ 编辑器引擎方法集
 // =========================================================================
 async function initMilkdown() {
+    // 1. 铸造 Slash 插件工厂
+    const slash = slashFactory('geek-slash');
+
+    // 2. 构造 UI 容器与指令分发器
+    function slashPluginView(view) {
+        const content = document.createElement('div');
+        content.className = 'geek-slash-menu';
+        content.innerHTML = `
+            <div class="slash-item" data-cmd="h1"><span style="margin-right:8px">#️⃣</span>大标题 (H1)</div>
+            <div class="slash-item" data-cmd="h2"><span style="margin-right:8px">##️⃣</span>中标题 (H2)</div>
+            <div class="slash-item" data-cmd="ul"><span style="margin-right:8px">⏺</span>无序列表</div>
+            <div class="slash-item" data-cmd="quote"><span style="margin-right:8px">❞</span>引用块</div>
+        `;
+
+        // 监听点击并分发指令
+        content.addEventListener('mousedown', (e) => {
+            e.preventDefault(); 
+            const item = e.target.closest('.slash-item');
+            if (!item) return;
+            
+            const cmd = item.dataset.cmd;
+            milkdownEditor.action((ctx) => {
+                const editorView = ctx.get(editorViewCtx);
+                const { state } = editorView;
+                
+                // 物理抹除刚才敲入的触发器 "/" 字符
+                editorView.dispatch(state.tr.delete(state.selection.from - 1, state.selection.from));
+                
+                // 发射排版指令
+                const commands = ctx.get(commandsCtx);
+                if (cmd === 'h1') commands.call(toggleHeadingCommand.key, { level: 1 });
+                if (cmd === 'h2') commands.call(toggleHeadingCommand.key, { level: 2 });
+                if (cmd === 'ul') commands.call(wrapInBulletListCommand.key);
+                if (cmd === 'quote') commands.call(wrapInBlockquoteCommand.key);
+            });
+        });
+
+        // 将 DOM 托付给 Milkdown 的位置追踪器
+        const provider = new SlashProvider({ content });
+
+        return {
+            update: (updatedView, prevState) => provider.update(updatedView, prevState),
+            destroy: () => {
+                provider.destroy();
+                content.remove();
+            },
+        };
+    }
+
+    // 3. 引擎点火并装载 Slash
     milkdownEditor = await Editor.make()
         .config((ctx) => {
             ctx.set(rootCtx, document.querySelector('#milkdown-editor'));
             ctx.set(defaultValueCtx, '');
-            // 绑定侦听器，实时获取最新的 Markdown 内容
             ctx.get(listenerCtx).markdownUpdated((ctx, markdown) => {
                 currentMarkdownContent = markdown;
             });
+            // 绑定我们刚捏好的 Slash UI
+            ctx.set(slash.key, { view: slashPluginView });
         })
         .config(nord)
         .use(commonmark)
         .use(gfm)
         .use(history)
         .use(listener)
+        .use(slash) // 👈 将插件挂载到主线程
         .create();
 }
-
-function setEditorContent(markdownStr) {
-    if (!milkdownEditor) return;
-    try {
-        // 强制替换当前编辑器内容 (纯净 ESM 写法)
-        milkdownEditor.action((ctx) => {
-            const view = ctx.get(editorViewCtx);
-            const parser = ctx.get(parserCtx);
-            const doc = parser(markdownStr);
-            if (!doc) return;
-            const state = view.state;
-            view.dispatch(state.tr.replaceWith(0, state.doc.content.size, doc));
-        });
-        currentMarkdownContent = markdownStr;
-    } catch (e) {
-        console.error("❌ 编辑器内容渲染失败:", e);
-    }
-}
-
 function clearEditor() { setEditorContent(''); }
 
 // =========================================================================
