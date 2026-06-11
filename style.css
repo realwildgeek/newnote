@@ -164,9 +164,49 @@ body {
 .divider { border-top: 1px solid var(--border-light); margin-bottom: 20px; flex-shrink: 0; }
 
 /* ==========================================
-   ✒️ 8. 编辑器基础容器 (Milkdown Ready)
+   ✒️ 8. 编辑器深度定制 (Milkdown 无界融合)
    ========================================== */
-#milkdown-editor { flex: 1; font-size: 16px; line-height: 1.8; color: var(--text-secondary); min-height: 400px; cursor: text; outline: none; }
+#milkdown-editor { 
+    flex: 1; 
+    width: 100%; 
+    display: flex; 
+    flex-direction: column; 
+}
+
+/* 1. 强行扒掉 Nord 主题的“卡片外衣”，让它背景透明、去除阴影 */
+.milkdown {
+    background: transparent !important;
+    box-shadow: none !important;
+    color: var(--text-secondary) !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+}
+
+/* 2. 彻底抹杀浏览器的默认输入黑框，并规范光标排版 */
+.milkdown .ProseMirror {
+    outline: none !important;
+    border: none !important;
+    min-height: 60vh;
+    padding: 10px 2px !important; /* 左右微微留白，防止光标贴墙 */
+    line-height: 1.8;
+    cursor: text;
+    word-wrap: break-word;
+}
+
+/* 3. 让 Milkdown 内部的标题排版继承你的主题色彩 */
+.milkdown .ProseMirror h1 { 
+    font-size: clamp(22px, 3vw + 8px, 28px); 
+    margin: 20px 0 10px 0; 
+    color: var(--text-main); 
+}
+.milkdown .ProseMirror h2 { 
+    font-size: clamp(18px, 2vw + 8px, 22px); 
+    margin: 15px 0 10px 0; 
+    color: var(--text-main); 
+}
+.milkdown .ProseMirror p {
+    margin: 0 0 12px 0;
+}
 
 /* ==========================================
    🗂️ 9. 文件大厅与标签系统 UI
