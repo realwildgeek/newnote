@@ -24,7 +24,7 @@
     </script>
 
     <link rel="manifest" href="./manifest.json">
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="WebNote">
 </head>
@@ -34,7 +34,7 @@
             <div style="display: flex; justify-content: flex-start; align-items: center; gap: 12px; margin-bottom: 5px;">
                 <div class="hamburger-pin" id="pinBtn" title="驻留/取消驻留">☰</div>
                 <div class="theme-toggle-btn" title="切换亮/暗模式">🌓</div>
-                <div onclick="window.location.href='https://lt.838808.xyz/api/logout'" title="退出系统" style="cursor: pointer; font-size: 16px; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.7" onmouseout="this.style.opacity=1">🚪</div>
+                <div id="btn-logout" title="退出系统" style="cursor: pointer; font-size: 16px; transition: opacity 0.2s;" onmouseover="this.style.opacity=0.7" onmouseout="this.style.opacity=1">🚪</div>
                 <div id="btn-file-hall" title="文件大厅" style="cursor: pointer; font-size: 16px;">📁</div>
                 <div id="btn-file-encrypt" title="文件加密" style="cursor: pointer; font-size: 16px;">🔐</div>
             </div>
