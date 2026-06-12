@@ -11,9 +11,12 @@
         document.documentElement.setAttribute('data-theme', savedTheme);
     </script>
 
-    <!-- 引入 Milkdown Crepe 官方满血主题 (Unpkg 稳定源) -->
-    <link rel="stylesheet" href="https://unpkg.com/@milkdown/crepe/theme/common/style.css" />
-    <link rel="stylesheet" href="https://unpkg.com/@milkdown/crepe/theme/frame.css" />
+    <!-- 1. 引入 Material Symbols 图标库 (Crepe 的菜单图标必须依赖它) -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+    <!-- 2. 引入 Milkdown Crepe 核心排版样式 (指定 @7 版本，确保路径绝对正确) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@milkdown/crepe@7/theme/common/style.css" />
+    <!-- 3. 引入 Milkdown Crepe 官方 Frame 皮肤主题 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@milkdown/crepe@7/theme/frame.css" />
     
     <link rel="stylesheet" href="./style.css">
 
