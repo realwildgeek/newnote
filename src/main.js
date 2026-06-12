@@ -4,7 +4,7 @@
 // 🛡️ 架构层级: Application 根节点 (Milkdown 强力驱动版)
 // =========================================================================
 
-import { initUI, logStatus, askForTagDetails } from './components/ui.js';
+import { initUI, logStatus, askForTagDetails, renderSidebarRecentList, renderNoteTagsUI, renderFileHallUI } from './components/ui.js';
 import { initTripleLayerSecurity, logout, getSession } from './core/auth.js';
 import { fetchCloudList, downloadAndDecrypt, encryptAndUpload, deleteNote, generateSystemFileId, updateCloudTags } from './core/storage.js';
 import { TagManager } from './components/tags.js'; 
@@ -248,7 +248,7 @@ function bindGlobalEvents() {
     // 文件大厅 (固定桶 📁 图标直达)
     document.getElementById('btn-file-hall').addEventListener('click', () => {
         document.getElementById('fileBrowserModal').classList.add('active');
-        renderFileHallUI(); 
+        triggerFileHallUpdate(); 
     });
     document.getElementById('btn-close-modal').addEventListener('click', () => {
         document.getElementById('fileBrowserModal').classList.remove('active');
@@ -258,7 +258,7 @@ function bindGlobalEvents() {
         document.querySelectorAll('.modal-sidebar .tag-item').forEach(el => el.classList.remove('active'));
         e.currentTarget.classList.add('active');
         State.hallActiveTagId = 'all';
-        renderFileHallUI();
+        triggerFileHallUpdate();
     });
 
     const sidebarList = document.getElementById('tag-sidebar-list');
@@ -270,7 +270,7 @@ function bindGlobalEvents() {
                 document.getElementById('view-all-files').classList.remove('active');
                 item.classList.add('active');
                 State.hallActiveTagId = item.dataset.id;
-                renderFileHallUI();
+                triggerFileHallUpdate();
             }
         });
     }
@@ -339,8 +339,8 @@ async function refreshCloudList() {
                 State.globalFiles.forEach(f => f.tags.forEach(id => usedTags.add(id)));
                 State.tagManagerInstance.setUsedTags(usedTags);
                 
-                renderFileHallUI();
-                renderNoteTagsUI(currentNoteTags); 
+                triggerFileHallUpdate();
+                triggerTagsUIUpdate(currentNoteTags); 
             });
         }
 
@@ -348,32 +348,9 @@ async function refreshCloudList() {
         State.globalFiles.forEach(f => f.tags.forEach(id => usedTags.add(id)));
         State.tagManagerInstance.setUsedTags(usedTags);
 
-        renderSidebarRecentList();
+        triggerSidebarUpdate();
         logStatus("✅ 加密目录及标签库同步完毕");
     } catch (e) { logStatus("❌ 获取目录失败：" + e.message); }
-}
-
-// =========================================================================
-// 🖼️ 业务流 B：侧边栏渲染
-// =========================================================================
-function renderSidebarRecentList() {
-    const listContainer = document.getElementById("cloud-file-list");
-    if (!listContainer) return;
-    listContainer.innerHTML = '';
-
-    const recentFiles = State.globalFiles.slice(0, 15); 
-    if (recentFiles.length === 0) {
-        listContainer.innerHTML = '<div style="color: var(--text-muted); font-size: 12px; text-align: center; margin-top: 20px;">空空如也</div>';
-        return;
-    }
-
-    recentFiles.forEach(fileObj => {
-        const container = document.createElement('div');
-        container.className = 'file-item-container';
-        container.innerHTML = `<div class="file-item" title="${fileObj.title}" style="width: 100%;">📄 ${fileObj.title}</div>`;
-        container.querySelector('.file-item').addEventListener('click', () => loadAndDecryptNote(fileObj.id));
-        listContainer.appendChild(container);
-    });
 }
 
 // =========================================================================
@@ -396,7 +373,7 @@ async function loadAndDecryptNote(fileId, isRetry = false) {
         setEditorContent(decryptedData || "");
         
         State.currentFileId = fileId; 
-        renderNoteTagsUI(fileMeta.tags || []);
+        triggerTagsUIUpdate(fileMeta.tags || []);
         logStatus(`✅ 成功拉取：${fileMeta.title || '无标题'}`);
     } catch (e) {
         if (e.message.includes("OperationError") || e.message.includes("密码错误")) {
@@ -456,6 +433,36 @@ async function executeDelete(fileId) {
 }
 
 // =========================================================================
+// 🎛️ 视图控制器 (接管 UI 层反馈)
+// =========================================================================
+
+function triggerSidebarUpdate() {
+    renderSidebarRecentList(State.globalFiles.slice(0, 15), (id) => loadAndDecryptNote(id));
+}
+
+function triggerFileHallUpdate() {
+    renderFileHallUI(State.globalFiles, State.globalTags, State.hallActiveTagId, 
+        (id) => {
+            document.getElementById('fileBrowserModal').classList.remove('active');
+            loadAndDecryptNote(id);
+        }, 
+        (id) => executeDelete(id)
+    );
+}
+
+function triggerTagsUIUpdate(selectedIds = []) {
+    currentNoteTags = [...selectedIds];
+    triggerTagsUIUpdate(State.globalTags, currentNoteTags, (tagId) => {
+        if (currentNoteTags.includes(tagId)) { 
+            currentNoteTags = currentNoteTags.filter(id => id !== tagId); 
+        } else { 
+            currentNoteTags.push(tagId); 
+        }
+        triggerTagsUIUpdate(currentNoteTags);
+    });
+}
+
+// =========================================================================
 // 🧰 通用工具集
 // =========================================================================
 function resetWorkspace() {
@@ -463,7 +470,7 @@ function resetWorkspace() {
     document.getElementById('note-title').value = "";
     document.getElementById('meta-created').innerText = "（未保存）";
     document.getElementById('meta-updated').innerText = "（未保存）";
-    renderNoteTagsUI([]); clearEditor();
+    triggerTagsUIUpdate([]); clearEditor();
     document.getElementById('note-title').focus();
     logStatus("✨ 画布已清空，可建立新终端。");
 }
@@ -471,123 +478,4 @@ function resetWorkspace() {
 function getFormattedTime() {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-}
-
-// =========================================================================
-// 🏷️ 业务流 F：右侧胶囊打标签体验
-// =========================================================================
-let currentNoteTags = []; 
-
-function renderNoteTagsUI(selectedTagIds = []) {
-    currentNoteTags = [...selectedTagIds]; 
-    const container = document.getElementById('meta-tags-container');
-    if (!container) return;
-    container.innerHTML = '';
-    
-    const availableTags = State.globalTags;
-    if (availableTags.length === 0) {
-        container.innerHTML = '<span style="color:var(--text-muted); font-size:12px;">暂无可用标签</span>';
-        return;
-    }
-
-    availableTags.forEach(tag => {
-        const isSelected = currentNoteTags.includes(tag.id);
-        const capsule = document.createElement('div');
-        capsule.style.cssText = `display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; margin: 4px 6px 4px 0; border-radius: 12px; font-size: 12px; cursor: pointer; user-select: none; transition: 0.2s; border: 1px solid ${isSelected ? tag.color : 'var(--border-dark)'}; background: ${isSelected ? tag.color + '20' : 'transparent'}; color: ${isSelected ? 'var(--text-main)' : 'var(--text-muted)'};`;
-        capsule.innerHTML = `<span style="width:8px; height:8px; border-radius:50%; background:${tag.color}; opacity:${isSelected ? '1' : '0.3'}; transition: 0.2s;"></span>${tag.name}`;
-        capsule.addEventListener('click', () => {
-            if (currentNoteTags.includes(tag.id)) { currentNoteTags = currentNoteTags.filter(id => id !== tag.id); } 
-            else { currentNoteTags.push(tag.id); }
-            renderNoteTagsUI(currentNoteTags); 
-        });
-        container.appendChild(capsule);
-    });
-}
-
-// =========================================================================
-// 🗂️ 业务流 G：高级文件大厅渲染引擎
-// =========================================================================
-function renderFileHallUI() {
-    const gridContainer = document.getElementById('file-grid-container');
-    if(!gridContainer) return;
-    gridContainer.innerHTML = '';
-
-    if (State.hallActiveTagId === 'all') {
-        gridContainer.innerHTML = `<div style="margin-bottom: 16px; padding: 0 4px;"><input type="text" id="file-search-input" placeholder="🔍 搜索文件名称..." class="file-search-input"></div><div class="file-grid" id="all-files-grid"><div style="display: flex; padding: 8px 16px 8px 32px; border-bottom: 1px solid var(--border-light); font-size: 12px; color: var(--text-muted); font-weight: bold; margin-bottom: 4px;"><div style="flex: 1;">文件名称</div><div style="width: 150px; text-align: right;">最后修改</div><div style="width: 40px; text-align: center;">操作</div></div></div>`;
-        const grid = document.getElementById('all-files-grid');
-        const searchInput = document.getElementById('file-search-input');
-
-        const renderFlatFiles = (query) => {
-            while (grid.children.length > 1) { grid.removeChild(grid.lastChild); }
-            const filtered = State.globalFiles.filter(f => f.title.toLowerCase().includes(query.toLowerCase()));
-            if (filtered.length === 0) { grid.insertAdjacentHTML('beforeend', '<div style="color: var(--text-muted); text-align: center; padding: 40px; font-size: 14px;">没有找到匹配的文件 🛸</div>'); return; }
-
-            filtered.forEach(file => {
-                const card = document.createElement('div'); card.className = 'file-card';
-                let tagsHtml = '';
-                if (State.globalTags) {
-                    file.tags.forEach(tId => {
-                        const t = State.globalTags.find(tag => tag.id === tId);
-                        if(t) tagsHtml += `<span class="inline-tag-pill" style="background-color: ${t.color}15; color: ${t.color}; border: 1px solid ${t.color}30;">${t.name}</span>`;
-                    });
-                }
-                card.innerHTML = `<div class="file-card-icon">📄</div><div class="file-card-name" title="${file.title}">${file.title}<span class="inline-tag-container">${tagsHtml}</span></div><div class="file-card-time">${file.updatedAt || '未知时间'}</div><div class="file-card-delete" title="物理销毁">🗑️</div>`;
-                card.addEventListener('click', (e) => {
-                    if (e.target.closest('.file-card-delete')) { e.stopPropagation(); executeDelete(file.id); return; }
-                    document.getElementById('fileBrowserModal').classList.remove('active');
-                    loadAndDecryptNote(file.id);
-                });
-                grid.appendChild(card);
-            });
-        };
-
-        renderFlatFiles(''); 
-        searchInput.addEventListener('input', (e) => renderFlatFiles(e.target.value));
-        return; 
-    }
-
-    const groups = {};
-    State.globalFiles.forEach(file => {
-        if (file.tags.length > 0) {
-            file.tags.forEach(tId => { if (!groups[tId]) groups[tId] = []; groups[tId].push(file); });
-        }
-    });
-
-    let tagsToShow = [];
-    if (State.globalTags) {
-        const target = State.globalTags.find(t => t.id === State.hallActiveTagId);
-        if (target) { tagsToShow.push(target); tagsToShow.push(...State.globalTags.filter(t => t.parentId === target.id)); }
-    }
-
-    const renderGroup = (title, files) => {
-        if (files.length === 0) return;
-        const header = document.createElement('div'); header.className = 'file-group-header';
-        header.innerHTML = `<span>🏷️ ${title}</span> <span class="file-group-count">${files.length} 篇笔记</span>`;
-        gridContainer.appendChild(header);
-
-        const grid = document.createElement('div'); grid.className = 'file-grid';
-        const listHeader = document.createElement('div');
-        listHeader.style.cssText = "display: flex; padding: 8px 16px 8px 32px; border-bottom: 1px solid var(--border-light); font-size: 12px; color: var(--text-muted); font-weight: bold; margin-bottom: 4px;";
-        listHeader.innerHTML = `<div style="flex: 1;">文件名称</div><div style="width: 150px; text-align: right;">最后修改</div><div style="width: 40px; text-align: center;">操作</div>`;
-        grid.appendChild(listHeader);
-
-        files.forEach(file => {
-            const card = document.createElement('div'); card.className = 'file-card';
-            card.innerHTML = `<div class="file-card-icon">📄</div><div class="file-card-name" title="${file.title}">${file.title}</div><div class="file-card-time">${file.updatedAt || '未知时间'}</div><div class="file-card-delete" title="物理销毁">🗑️</div>`;
-            card.addEventListener('click', (e) => {
-                if (e.target.closest('.file-card-delete')) { e.stopPropagation(); executeDelete(file.id); return; }
-                document.getElementById('fileBrowserModal').classList.remove('active');
-                loadAndDecryptNote(file.id);
-            });
-            grid.appendChild(card);
-        });
-        gridContainer.appendChild(grid);
-    };
-
-    tagsToShow.forEach(tag => {
-        const filesInTag = groups[tag.id] || [];
-        if (filesInTag.length > 0) renderGroup(tag.name, filesInTag);
-    });
-
-    if (gridContainer.innerHTML === '') { gridContainer.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 40px; font-size: 14px;">该标签下暂无关联笔记 🛸</div>'; }
 }
