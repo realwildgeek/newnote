@@ -374,176 +374,62 @@ body {
 .status-bar-text { font-size: 13px; color: var(--text-muted); opacity: 0.7; }
 
 /* ==========================================
-   🪄 12. Slash Menu (极客唤醒菜单)
+   ✒️ 12. 沉浸式编辑器装甲 (Milkdown Core & Menus)
    ========================================== */
+
+/* --- 1. Slash 极客唤醒菜单 --- */
 .geek-slash-menu {
-    position: absolute;
-    background: var(--bg-panel);
-    border: 1px solid var(--border-dark);
-    border-radius: 8px;
-    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.15);
-    padding: 6px;
-    z-index: 9999;
-    display: none; /* 核心魔法：默认隐身，由 Milkdown 的 Provider 掌管生死 */
-    flex-direction: column;
-    gap: 2px;
-    min-width: 160px;
+    position: absolute; background: var(--bg-panel); border: 1px solid var(--border-dark);
+    border-radius: 8px; box-shadow: 0 10px 24px rgba(0, 0, 0, 0.15); padding: 6px;
+    z-index: 9999; display: none; flex-direction: column; gap: 2px; min-width: 160px;
 }
-.geek-slash-menu[data-show="true"] {
-    display: flex;
-}
+.geek-slash-menu[data-show="true"] { display: flex; }
 .slash-item {
-    padding: 8px 12px;
-    border-radius: 6px;
-    cursor: pointer;
-    color: var(--text-main);
-    font-size: 13px;
-    display: flex;
-    align-items: center;
-    transition: 0.2s;
-    font-weight: 500;
+    padding: 8px 12px; border-radius: 6px; cursor: pointer; color: var(--text-main);
+    font-size: 13px; display: flex; align-items: center; transition: 0.2s; font-weight: 500;
 }
-.slash-item:hover {
-    background: var(--bg-hover);
-    color: var(--color-accent);
-}
+.slash-item:hover { background: var(--bg-hover); color: var(--color-accent); }
 
-/* ==========================================
-   🖋️ 13. Markdown 核心排版美化装甲 (沉浸极客版)
-   ========================================== */
-
-/* --- 1. 引用块 (Blockquote) --- */
-.milkdown .ProseMirror blockquote {
-    border-left: 4px solid var(--color-accent);
-    margin: 16px 0;
-    padding: 12px 16px;
-    color: var(--text-muted);
-    background-color: var(--bg-hover);
-    border-radius: 0 8px 8px 0;
-    font-style: normal;
-}
-.milkdown .ProseMirror blockquote p { margin: 0; }
-
-/* --- 2. 优雅代码块 (Code Block) --- */
-.milkdown .ProseMirror pre {
-    background-color: var(--bg-panel);
-    border: 1px solid var(--border-dark);
-    border-radius: 8px;
-    padding: 16px;
-    margin: 16px 0;
-    overflow-x: auto;
-    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-    font-size: 14px;
-    line-height: 1.6;
-    color: var(--text-secondary);
-    box-shadow: inset 0 1px 4px rgba(0,0,0,0.02);
-}
-.milkdown .ProseMirror pre code {
-    background: transparent;
-    padding: 0;
-    border-radius: 0;
-    color: inherit;
-}
-
-/* --- 3. 行内代码 (Inline Code) --- */
-.milkdown .ProseMirror p code {
-    background-color: var(--bg-hover);
-    color: var(--color-accent);
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-family: 'Consolas', 'Monaco', monospace;
-    font-size: 0.9em;
-    font-weight: 500;
-}
-
-/* --- 4. 极简表格 (Table) --- */
-.milkdown .ProseMirror table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 20px 0;
-    font-size: 14px;
-}
-.milkdown .ProseMirror th, 
-.milkdown .ProseMirror td {
-    border: 1px solid var(--border-medium);
-    padding: 10px 14px;
-    text-align: left;
-}
-.milkdown .ProseMirror th {
-    background-color: var(--bg-panel);
-    font-weight: 600;
-    color: var(--text-main);
-}
-.milkdown .ProseMirror tr:nth-child(even) {
-    background-color: var(--bg-panel);
-}
-/* 隐藏无用的 Milkdown 表格操控手柄 */
-.milkdown-cell-point, .milkdown-cell-left, .milkdown-cell-top { display: none !important; }
-
-/* --- 5. 分割线 (Horizontal Rule) --- */
-.milkdown .ProseMirror hr {
-    border: none;
-    height: 1px;
-    background-color: var(--border-medium);
-    margin: 32px 0;
-}
-
-/* --- 6. 列表优化 (Lists) --- */
-.milkdown .ProseMirror ul, 
-.milkdown .ProseMirror ol {
-    padding-left: 24px;
-    margin: 12px 0;
-}
-.milkdown .ProseMirror li {
-    margin-bottom: 6px;
-}
-.milkdown .ProseMirror li p {
-    margin: 0; /* 防止列表项内部间距过大 */
-}
-
-/* --- 7. 图片自适应 (Images) --- */
-.milkdown .ProseMirror img {
-    max-width: 100%;
-    border-radius: 8px;
-    border: 1px solid var(--border-light);
-    margin: 16px 0;
-}
-
-/* ==========================================
-   🖱️ 14. 划词悬浮菜单 (Tooltip Menu)
-   ========================================== */
+/* --- 2. Tooltip 划词悬浮菜单 --- */
 .geek-tooltip-menu {
-    position: absolute;
-    background: var(--bg-panel);
-    border: 1px solid var(--border-dark);
-    border-radius: 8px;
-    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.15);
-    padding: 4px;
-    z-index: 9999;
-    display: none; /* 默认隐身，由 Provider 控制显示 */
-    gap: 4px;
+    position: absolute; background: var(--bg-panel); border: 1px solid var(--border-dark);
+    border-radius: 8px; box-shadow: 0 10px 24px rgba(0, 0, 0, 0.15); padding: 4px;
+    z-index: 9999; display: none; gap: 4px;
 }
-.geek-tooltip-menu[data-show="true"] {
-    display: flex;
-}
+.geek-tooltip-menu[data-show="true"] { display: flex; }
 .tooltip-item {
-    padding: 6px 12px;
-    border-radius: 6px;
-    cursor: pointer;
-    color: var(--text-main);
-    font-size: 14px;
-    font-weight: 600;
-    transition: 0.2s;
-    user-select: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    padding: 6px 12px; border-radius: 6px; cursor: pointer; color: var(--text-main);
+    font-size: 14px; font-weight: 600; transition: 0.2s; user-select: none; display: flex;
+    align-items: center; justify-content: center;
 }
-.tooltip-item:hover {
-    background: var(--bg-hover);
-    color: var(--color-accent);
-}
-/* 针对各个按键的特殊视觉微调 */
+.tooltip-item:hover { background: var(--bg-hover); color: var(--color-accent); }
 .tooltip-item.italic { font-style: italic; font-family: serif; }
 .tooltip-item.strike { text-decoration: line-through; color: var(--text-muted); }
 .tooltip-item.code { font-family: monospace; background: var(--bg-body); padding: 4px 8px; border: 1px solid var(--border-medium); border-radius: 4px;}
+
+/* --- 3. Markdown 核心排版重写 --- */
+.milkdown .ProseMirror blockquote {
+    border-left: 4px solid var(--color-accent); margin: 16px 0; padding: 12px 16px;
+    color: var(--text-muted); background-color: var(--bg-hover); border-radius: 0 8px 8px 0; font-style: normal;
+}
+.milkdown .ProseMirror blockquote p { margin: 0; }
+.milkdown .ProseMirror pre {
+    background-color: var(--bg-panel); border: 1px solid var(--border-dark); border-radius: 8px;
+    padding: 16px; margin: 16px 0; overflow-x: auto; font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 14px; line-height: 1.6; color: var(--text-secondary); box-shadow: inset 0 1px 4px rgba(0,0,0,0.02);
+}
+.milkdown .ProseMirror pre code { background: transparent; padding: 0; border-radius: 0; color: inherit; }
+.milkdown .ProseMirror p code {
+    background-color: var(--bg-hover); color: var(--color-accent); padding: 2px 6px;
+    border-radius: 4px; font-family: 'Consolas', 'Monaco', monospace; font-size: 0.9em; font-weight: 500;
+}
+.milkdown .ProseMirror table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px; }
+.milkdown .ProseMirror th, .milkdown .ProseMirror td { border: 1px solid var(--border-medium); padding: 10px 14px; text-align: left; }
+.milkdown .ProseMirror th { background-color: var(--bg-panel); font-weight: 600; color: var(--text-main); }
+.milkdown .ProseMirror tr:nth-child(even) { background-color: var(--bg-panel); }
+.milkdown-cell-point, .milkdown-cell-left, .milkdown-cell-top { display: none !important; }
+.milkdown .ProseMirror hr { border: none; height: 1px; background-color: var(--border-medium); margin: 32px 0; }
+.milkdown .ProseMirror ul, .milkdown .ProseMirror ol { padding-left: 24px; margin: 12px 0; }
+.milkdown .ProseMirror li { margin-bottom: 6px; }
+.milkdown .ProseMirror li p { margin: 0; }
+.milkdown .ProseMirror img { max-width: 100%; border-radius: 8px; border: 1px solid var(--border-light); margin: 16px 0; }
