@@ -50,11 +50,17 @@ body {
 /* ==========================================
    🧭 3. 侧边栏与导航引擎 (Sidebar & Nav)
    ========================================== */
-#sidebar { 
-    width: 15px; background: transparent; border-right: 1px solid transparent; 
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
-    display: flex; flex-direction: column; position: relative; z-index: 100; 
-    overflow: hidden; white-space: nowrap; 
+#sidebar {
+    width: 15px; background: transparent; border-right: 1px solid transparent;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex; flex-direction: column; 
+    
+    position: fixed;     /* 将 relative 改为 fixed，脱离正常的页面排版 */
+    top: 0;              /* 贴紧屏幕顶部 */
+    left: 0;             /* 贴紧屏幕左侧 */
+    height: 100vh;       /* 高度占满全屏 */
+    z-index: 1000;       /* 调高层级，确保绝对能盖住 ☰ 和 + 等按钮 */
+    overflow: hidden; white-space: nowrap;
 }
 .sidebar-content { 
     padding: 20px; opacity: 0; transition: opacity 0.2s; 
