@@ -13,7 +13,7 @@ import { CryptoCore } from './core/crypto.js';
 // ----------------------------------------------------
 // 🥞 Milkdown Crepe 官方满血装甲
 // ----------------------------------------------------
-import { Crepe } from 'https://esm.sh/@milkdown/crepe';
+import { Crepe } from 'https://esm.sh/@milkdown/crepe?bundle';
 
 // =========================================================================
 // 🧠 核心状态机 (0 延迟架构的数据大本营)
