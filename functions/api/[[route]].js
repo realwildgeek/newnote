@@ -39,7 +39,7 @@ export async function onRequest(context) {
 
         // 📝 路由: R2 实体专线 (只管文件本体，不管 KV 目录)
         if (path.startsWith('note/')) {
-            const fileId = path.split('/');
+            const fileId = path.split('/'); // 🚨 修复点 1：必须加上 才能正确提取字符串 ID
             if (method === 'GET') {
                 const object = await env.R2_STORE.get(fileId); // 连 note_ 前缀都省了，直接用 32 位哈希
                 if (!object) return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
