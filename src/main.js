@@ -180,6 +180,31 @@ async function initMilkdown() {
 }
 
 // =========================================================================
+// 🎛️ 编辑器内容流转引擎 (API)
+// =========================================================================
+function setEditorContent(markdownStr) {
+    if (!milkdownEditor) return;
+    milkdownEditor.action((ctx) => {
+        const view = ctx.get(editorViewCtx);
+        const parser = ctx.get(parserCtx);
+        const doc = parser(markdownStr);
+        if (!doc) return;
+        // 底层 AST 替换，确保 0 延迟且不破坏历史记录
+        view.dispatch(view.state.tr.replace(0, view.state.doc.content.size, doc.slice(0, doc.content.size)));
+    });
+    currentMarkdownContent = markdownStr;
+}
+
+function clearEditor() {
+    if (!milkdownEditor) return;
+    milkdownEditor.action((ctx) => {
+        const view = ctx.get(editorViewCtx);
+        view.dispatch(view.state.tr.delete(0, view.state.doc.content.size));
+    });
+    currentMarkdownContent = "";
+}
+
+// =========================================================================
 // 🚀 系统启动点火序列
 // =========================================================================
 document.addEventListener('DOMContentLoaded', async () => {
