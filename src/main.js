@@ -435,7 +435,9 @@ async function executeDelete(fileId) {
 // =========================================================================
 // 🎛️ 视图控制器 (接管 UI 层反馈)
 // =========================================================================
+
 let currentNoteTags = [];
+
 function triggerSidebarUpdate() {
     renderSidebarRecentList(State.globalFiles.slice(0, 15), (id) => loadAndDecryptNote(id));
 }
@@ -452,7 +454,9 @@ function triggerFileHallUpdate() {
 
 function triggerTagsUIUpdate(selectedIds = []) {
     currentNoteTags = [...selectedIds];
-    triggerTagsUIUpdate(State.globalTags, currentNoteTags, (tagId) => {
+    
+    // ✅ 修复：必须调用引入的 renderNoteTagsUI 渲染器，绝不能调用自己！
+    renderNoteTagsUI(State.globalTags, currentNoteTags, (tagId) => {
         if (currentNoteTags.includes(tagId)) { 
             currentNoteTags = currentNoteTags.filter(id => id !== tagId); 
         } else { 
