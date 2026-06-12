@@ -5,7 +5,7 @@
 // =========================================================================
 
 import { getSession } from './auth.js';
-import { CryptoCore } from './crypto.js'; // 完美复用你现有的密码引擎
+import { CryptoCore } from './crypto.js'; 
 
 // -------------------------------------------------------------------------
 // 🧬 内部工具：轻量级 YAML Frontmatter 引擎
@@ -51,6 +51,49 @@ async function apiFetch(endpoint, options = {}) {
 }
 
 // -------------------------------------------------------------------------
+// 📡 核心业务流：拉取云端大厅，并在内存中批量解密 KV 索引
+// -------------------------------------------------------------------------
+export async function fetchCloudList() {
+    const { masterCredential } = getSession(); 
+    const data = await apiFetch('/list');
+    
+    const decryptedFiles = [];
+    
+    if (data.files && data.files.length > 0) {
+        for (const encryptedMeta of data.files) {
+            try {
+                const plainJsonStr = await CryptoCore.decrypt(encryptedMeta, masterCredential);
+                decryptedFiles.push(JSON.parse(plainJsonStr));
+            } catch (e) {
+                console.error("解密索引失败，跳过该项 (可能是密匙不匹配或数据损坏)");
+            }
+        }
+    }
+
+    return { 
+        files: decryptedFiles, 
+        tags: data.tags || [] 
+    };
+}
+
+// -------------------------------------------------------------------------
+// 📥 核心业务流：从 R2 下载真身，解密并剥离 YAML
+// -------------------------------------------------------------------------
+export async function downloadAndDecrypt(fileId, wrappedKey, customCred) {
+    const { masterCredential } = getSession();
+    const activeCredential = customCred || masterCredential;
+
+    const data = await apiFetch(`/note/${fileId}`);
+    const ciphertextR2 = data.r2Payload;
+    
+    if (!ciphertextR2) return "";
+
+    const rawText = await CryptoCore.decrypt(ciphertextR2, activeCredential);
+    const parsed = parseFrontmatter(rawText);
+    return parsed.content;
+}
+
+// -------------------------------------------------------------------------
 // 📤 核心业务流：双轨盲化加密，发往云端 (已移除 hasCustomKey)
 // -------------------------------------------------------------------------
 export async function encryptAndUpload(fileId, content, metaInfo, customCred) {
@@ -61,12 +104,12 @@ export async function encryptAndUpload(fileId, content, metaInfo, customCred) {
     const fullDocument = buildFrontmatter(metaInfo) + content;
     const ciphertextR2 = await CryptoCore.encrypt(fullDocument, activeCredential);
 
-    // 2. 铸造 KV 影子密文 (纯净的四项元数据，没有任何加密标志位)
+    // 2. 铸造 KV 影子密文 (纯净的四项元数据)
     const kvMetaStr = JSON.stringify({
         id: fileId,
         title: metaInfo.title,
         tags: metaInfo.tags,
-        createdAt: metaInfo.createdAt, // 👈 新增创建时间
+        createdAt: metaInfo.createdAt, 
         updatedAt: metaInfo.updatedAt
     });
     const ciphertextKV = await CryptoCore.encrypt(kvMetaStr, masterCredential);
@@ -77,61 +120,6 @@ export async function encryptAndUpload(fileId, content, metaInfo, customCred) {
         body: JSON.stringify({
             metadata: ciphertextKV,
             r2Payload: ciphertextR2
-        })
-    });
-
-    return true;
-}
-
-// -------------------------------------------------------------------------
-// 📥 核心业务流：从 R2 下载真身，解密并剥离 YAML
-// -------------------------------------------------------------------------
-export async function downloadAndDecrypt(fileId, wrappedKey, customCred) {
-    const { masterCredential } = getSession();
-    // 智能选择钥匙：如果用户传入了独立密码铸造的钥匙，就用独立的，否则用主钥匙
-    const activeCredential = customCred || masterCredential;
-
-    // 1. 从 R2 抓取密文本体 (此时它是一坨毫无意义的 Base64)
-    const data = await apiFetch(`/note/${fileId}`);
-    const ciphertextR2 = data.r2Payload;
-    
-    if (!ciphertextR2) return "";
-
-    // 2. 将密文喂给底层核心引擎进行解密
-    const rawText = await CryptoCore.decrypt(ciphertextR2, activeCredential);
-
-    // 3. 剥离 YAML 头，把纯净的 Markdown 喂给编辑器
-    const parsed = parseFrontmatter(rawText);
-    return parsed.content;
-}
-
-// -------------------------------------------------------------------------
-// 📤 核心业务流：双轨盲化加密，发往云端
-// -------------------------------------------------------------------------
-export async function encryptAndUpload(fileId, content, metaInfo, customCred) {
-    const { masterCredential } = getSession();
-    const activeCredential = customCred || masterCredential;
-
-    // 1. 铸造 R2 真身密文 (YAML + 正文 捆绑加密)
-    const fullDocument = buildFrontmatter(metaInfo) + content;
-    const ciphertextR2 = await CryptoCore.encrypt(fullDocument, activeCredential);
-
-    // 2. 铸造 KV 影子密文 (强制使用主密钥，附加一个独立密码标志位供前端判断)
-    const kvMetaStr = JSON.stringify({
-        id: fileId,
-        title: metaInfo.title,
-        tags: metaInfo.tags,
-        updatedAt: metaInfo.updatedAt,
-        hasCustomKey: !!customCred // 极客细节：标记是否用了独立密码
-    });
-    const ciphertextKV = await CryptoCore.encrypt(kvMetaStr, masterCredential);
-
-    // 3. 向后端发起推流请求
-    await apiFetch(`/note/${fileId}`, {
-        method: 'PUT',
-        body: JSON.stringify({
-            metadata: ciphertextKV, // 发给 KV 的是密文
-            r2Payload: ciphertextR2 // 发给 R2 的也是密文
         })
     });
 
@@ -161,6 +149,5 @@ export async function updateCloudTags(newTags) {
 // 🆔 工具：生成全局唯一的无中线 32 位 ID
 // -------------------------------------------------------------------------
 export function generateSystemFileId() {
-    // 完美契合你的要求：32位字符，不含中线
     return crypto.randomUUID().replace(/-/g, '');
 }
