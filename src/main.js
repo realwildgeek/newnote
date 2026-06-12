@@ -322,9 +322,10 @@ async function refreshCloudList() {
     try {
         const { files, tags } = await fetchCloudList();
         
+        // 🚨 修复点 2：移除了已作废的 wrappedKey，补全 createdAt 映射
         State.globalFiles = files.map(f => ({
             id: f.id, title: f.title || "🔒 未知实体",
-            tags: f.tags || [], updatedAt: f.updatedAt, wrappedKey: f.wrappedKey 
+            tags: f.tags || [], createdAt: f.createdAt, updatedAt: f.updatedAt 
         }));
 
         State.globalFiles.sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime());
@@ -362,12 +363,14 @@ async function loadAndDecryptNote(fileId, isRetry = false) {
 
     try {
         const fileMeta = State.globalFiles.find(f => f.id === fileId);
-        if (!fileMeta || !fileMeta.wrappedKey) { throw new Error("缺失该文件的专属解密凭证"); }
+        // 🚨 修复点 3：移除了对 wrappedKey 的致命校验
+        if (!fileMeta) { throw new Error("缺失该文件的元数据"); }
 
-        // 🚨 迁移点：此处的 decryptedData 现在应当是 Markdown 文本，而不是 HTML
-        const decryptedData = await downloadAndDecrypt(fileId, fileMeta.wrappedKey, State.customFileCredential);
+        // 此处的 decryptedData 现在应当是 Markdown 文本
+        const decryptedData = await downloadAndDecrypt(fileId, null, State.customFileCredential);
         
         document.getElementById('note-title').value = fileMeta.title || "";
+        document.getElementById('meta-created').innerText = fileMeta.createdAt || "未知时间"; // 🚨 修复点 4：补全时间回显
         document.getElementById('meta-updated').innerText = fileMeta.updatedAt || "未知时间";
         
         setEditorContent(decryptedData || "");
@@ -396,7 +399,6 @@ async function loadAndDecryptNote(fileId, isRetry = false) {
 async function handleSync() {
     try { getSession(); } catch (e) { logStatus("❌ 拦截：核心密匙未驻留"); return; }
     
-    // 👈 修改这里：获取现有文件元数据，或者在新文件时记录当前时间
     let existingMeta = State.globalFiles.find(f => f.id === State.currentFileId);
     let creationTime = existingMeta ? existingMeta.createdAt : getFormattedTime();
 
@@ -407,10 +409,9 @@ async function handleSync() {
     const currentTags = [...currentNoteTags]; 
     const newUpdateTime = getFormattedTime();
     
+    document.getElementById('meta-created').innerText = creationTime; // 🚨 修复点 4：补全时间回显
     document.getElementById('meta-updated').innerText = newUpdateTime;
-    // (如果你在 UI 里加了创建时间的显示，也可以在这里 update UI)
 
-    // 👈 修改这里：把 createdAt 也塞进 metaInfo 里发给 storage.js
     const metaInfo = { id: State.currentFileId, title: titleStr, tags: currentTags, createdAt: creationTime, updatedAt: newUpdateTime };
     const existingIndex = State.globalFiles.findIndex(f => f.id === State.currentFileId);
     if (existingIndex >= 0) { State.globalFiles[existingIndex] = metaInfo; } 
@@ -420,10 +421,10 @@ async function handleSync() {
         logStatus("⏳ 双轨加密推流中...");
         await encryptAndUpload(State.currentFileId, bodyContent, metaInfo, State.customFileCredential, State.globalFiles);
         logStatus("✅ 安全同步完成");
-        triggerSidebarUpdate(); // 直接更新 UI 即可
+        triggerSidebarUpdate(); 
         triggerFileHallUpdate();
     } catch (e) {
-        // ...
+        logStatus("❌ 同步失败：" + e.message);
     }
 }
 
