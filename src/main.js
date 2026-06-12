@@ -435,7 +435,7 @@ async function executeDelete(fileId) {
 // =========================================================================
 // 🎛️ 视图控制器 (接管 UI 层反馈)
 // =========================================================================
-
+let currentNoteTags = [];
 function triggerSidebarUpdate() {
     renderSidebarRecentList(State.globalFiles.slice(0, 15), (id) => loadAndDecryptNote(id));
 }
