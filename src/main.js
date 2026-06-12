@@ -1,7 +1,7 @@
 // =========================================================================
 // 📄 模块名称: main.js
 // 🎯 模块功能: 极客云笔记总指挥部 (Bootloader & 0-Latency State Machine)
-// 🛡️ 架构层级: Application 根节点 (Milkdown 强力驱动版)
+// 🛡️ 架构层级: Application 根节点 (Crepe 满血驱动版)
 // =========================================================================
 
 import { initUI, logStatus } from './components/ui.js';
@@ -11,30 +11,9 @@ import { TagManager } from './components/tags.js';
 import { CryptoCore } from './core/crypto.js';
 
 // ----------------------------------------------------
-// ✒️ Milkdown 核心引擎与官方主题
+// 🥞 Milkdown Crepe 官方满血装甲
 // ----------------------------------------------------
 import { Crepe } from 'https://esm.sh/@milkdown/crepe';
-
-// ----------------------------------------------------
-// 🪄 极客排版指令与 UI 插件 (Slash & Tooltip)
-// ----------------------------------------------------
-import { slashFactory, SlashProvider } from 'https://esm.sh/@milkdown/plugin-slash';
-import { tooltipFactory, TooltipProvider } from 'https://esm.sh/@milkdown/plugin-tooltip'; // 👈 新增：悬浮菜单引擎
-import { 
-    wrapInHeadingCommand, 
-    wrapInBlockquoteCommand, 
-    wrapInBulletListCommand, 
-    wrapInOrderedListCommand, 
-    insertHrCommand, 
-    createCodeBlockCommand,
-    toggleStrongCommand,     // 👈 新增：加粗
-    toggleEmphasisCommand,   // 👈 新增：斜体
-    toggleInlineCodeCommand  // 👈 新增：行内高亮
-} from 'https://esm.sh/@milkdown/preset-commonmark';
-import { 
-    insertTableCommand, 
-    toggleStrikethroughCommand // 👈 新增：删除线
-} from 'https://esm.sh/@milkdown/preset-gfm';
 
 // =========================================================================
 // 🧠 核心状态机 (0 延迟架构的数据大本营)
