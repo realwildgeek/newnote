@@ -541,3 +541,41 @@ body {
 .tooltip-item.italic { font-style: italic; font-family: serif; }
 .tooltip-item.strike { text-decoration: line-through; color: var(--text-muted); }
 .tooltip-item.code { font-family: monospace; background: var(--bg-body); padding: 4px 8px; border: 1px solid var(--border-medium); border-radius: 4px;}
+
+/* ==========================================
+   🥞 15. Milkdown Crepe 主题深度桥接与美化
+   ========================================== */
+
+.milkdown {
+    /* --- 1. 核心色彩桥接 (对接你的系统变量) --- */
+    --crepe-color-background: transparent !important; /* 彻底透明，融入你的画板 */
+    --crepe-color-surface: var(--bg-panel) !important; /* 悬浮菜单、下拉框背景 */
+    --crepe-color-on-background: var(--text-main) !important; /* 正文颜色 */
+    --crepe-color-on-surface: var(--text-main) !important; /* 菜单文字颜色 */
+    
+    /* --- 2. 强调色与交互色彩 --- */
+    --crepe-color-primary: var(--color-accent) !important; /* 激活状态的极客蓝 */
+    --crepe-color-secondary: var(--text-muted) !important; /* 次要文本和图标 */
+    --crepe-color-border: var(--border-light) !important; /* 边框与分割线 */
+    --crepe-color-hover: var(--bg-hover) !important; /* 鼠标悬停色 */
+
+    /* --- 3. 阴影与质感优化 --- */
+    --crepe-shadow-1: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+    --crepe-shadow-2: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+    --crepe-radius: 8px !important; /* 全局统一圆角 */
+}
+
+/* --- 4. 隐藏丑陋的滚动条 (针对 / 唤出的长菜单) --- */
+.milkdown .crepe-slash-menu::-webkit-scrollbar {
+    width: 4px;
+}
+.milkdown .crepe-slash-menu::-webkit-scrollbar-thumb {
+    background: var(--border-medium);
+    border-radius: 4px;
+}
+
+/* --- 5. 修正编辑区的整体间距，去除边框感 --- */
+.milkdown .ProseMirror {
+    padding: 20px 0 !important;
+    min-height: 60vh;
+}
