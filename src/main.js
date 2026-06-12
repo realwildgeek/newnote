@@ -56,13 +56,6 @@ const State = {
 let milkdownEditor = null;
 let currentMarkdownContent = ""; // 实时缓存 Markdown 内容，用于推流
 
-const defaultSystemTags = [
-    { id: "tag_w8t5", name: "收集箱", color: "#007AFF", parentId: null },
-    { id: "tag_b3l2", name: "工作台", color: "#34C759", parentId: null },
-    { id: "tag_p9k4", name: "置顶", color: "#5856D6", parentId: null },
-    { id: "tag_a1b2", name: "存档", color: "#8E8E93", parentId: null }
-];
-
 // =========================================================================
 // ✒️ 编辑器引擎方法集
 // =========================================================================
@@ -203,8 +196,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         const masterPassword = prompt("🔐 终端锁闭。请输入主控密匙唤醒系统：");
         if (!masterPassword) { logStatus("❌ 启动中止：拒绝访问，系统未被唤醒"); return; }
 
-        const mockJwtToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.mock";
-        await initTripleLayerSecurity(mockJwtToken, masterPassword);
+        // TODO: 接入真实的 SSO 后，Token 将从 URL 参数或 Cookie 中提取
+        const ssoToken = "temp_token_for_now"; 
+        await initTripleLayerSecurity(ssoToken, masterPassword);
         
         logStatus("⏳ 密匙驻留成功，正在扫描暗网目录...");
         await refreshCloudList();
@@ -379,7 +373,7 @@ async function refreshCloudList() {
         }));
 
         State.globalFiles.sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime());
-        State.globalTags = tags || defaultSystemTags;
+        State.globalTags = tags || [];
 
         if (!State.tagManagerInstance) {
             State.tagManagerInstance = new TagManager('tag-sidebar-list', State.globalTags, async (newTagsArray) => {
@@ -514,7 +508,7 @@ function resetWorkspace() {
     document.getElementById('note-title').value = "";
     document.getElementById('meta-created').innerText = "（未保存）";
     document.getElementById('meta-updated').innerText = "（未保存）";
-    renderNoteTagsUI(["tag_w8t5"]); clearEditor();
+    renderNoteTagsUI([]); clearEditor();
     document.getElementById('note-title').focus();
     logStatus("✨ 画布已清空，可建立新终端。");
 }
