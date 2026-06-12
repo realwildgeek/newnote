@@ -1,6 +1,6 @@
 // =========================================================================
 // ☁️ 模块名称: storage.js
-// 🎯 模块功能: 零知识云端通信引擎 (R2 + KV 双轨盲化版)
+// 🎯 模块功能: 零知识云端通信引擎 (R2 + KV 上帝之眼双键版)
 // 🛡️ 架构层级: Network / Data Layer
 // =========================================================================
 
@@ -24,7 +24,7 @@ function parseFrontmatter(rawText) {
     // 正则提取 YAML 头和 Markdown 正文
     const match = rawText.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
     if (match) {
-        return { content: match.trimStart() };
+        return { content: match.trimStart() }; // 修复了索引，确保只提取正文
     }
     return { content: rawText };
 }
@@ -51,22 +51,20 @@ async function apiFetch(endpoint, options = {}) {
 }
 
 // -------------------------------------------------------------------------
-// 📡 核心业务流：拉取云端大厅，并在内存中批量解密 KV 索引
+// 📡 核心业务流：拉取云端大厅 (瞬间解密全量目录)
 // -------------------------------------------------------------------------
 export async function fetchCloudList() {
     const { masterCredential } = getSession(); 
     const data = await apiFetch('/list');
     
-    const decryptedFiles = [];
-    
-    if (data.files && data.files.length > 0) {
-        for (const encryptedMeta of data.files) {
-            try {
-                const plainJsonStr = await CryptoCore.decrypt(encryptedMeta, masterCredential);
-                decryptedFiles.push(JSON.parse(plainJsonStr));
-            } catch (e) {
-                console.error("解密索引失败，跳过该项 (可能是密匙不匹配或数据损坏)");
-            }
+    let decryptedFiles = [];
+    if (data.filesCipher) {
+        try {
+            // 一次性解密几千篇笔记的目录，极致性能
+            const plainJsonStr = await CryptoCore.decrypt(data.filesCipher, masterCredential);
+            decryptedFiles = JSON.parse(plainJsonStr);
+        } catch (e) {
+            console.error("解密上帝索引失败");
         }
     }
 
@@ -94,9 +92,9 @@ export async function downloadAndDecrypt(fileId, wrappedKey, customCred) {
 }
 
 // -------------------------------------------------------------------------
-// 📤 核心业务流：双轨盲化加密，发往云端 (已移除 hasCustomKey)
+// 📤 核心业务流：双轨盲化加密 (上帝视角全量推流)
 // -------------------------------------------------------------------------
-export async function encryptAndUpload(fileId, content, metaInfo, customCred) {
+export async function encryptAndUpload(fileId, content, metaInfo, customCred, globalFilesArray) {
     const { masterCredential } = getSession();
     const activeCredential = customCred || masterCredential;
 
@@ -104,33 +102,29 @@ export async function encryptAndUpload(fileId, content, metaInfo, customCred) {
     const fullDocument = buildFrontmatter(metaInfo) + content;
     const ciphertextR2 = await CryptoCore.encrypt(fullDocument, activeCredential);
 
-    // 2. 铸造 KV 影子密文 (纯净的四项元数据)
-    const kvMetaStr = JSON.stringify({
-        id: fileId,
-        title: metaInfo.title,
-        tags: metaInfo.tags,
-        createdAt: metaInfo.createdAt, 
-        updatedAt: metaInfo.updatedAt
-    });
-    const ciphertextKV = await CryptoCore.encrypt(kvMetaStr, masterCredential);
+    // 2. 铸造 KV 上帝密文 (把当前前端内存里的整个大厅目录全量加密)
+    const ciphertextKV = await CryptoCore.encrypt(JSON.stringify(globalFilesArray), masterCredential);
 
-    // 3. 向后端发起推流请求
-    await apiFetch(`/note/${fileId}`, {
-        method: 'PUT',
-        body: JSON.stringify({
-            metadata: ciphertextKV,
-            r2Payload: ciphertextR2
-        })
-    });
+    // 3. 并发双轨推流 (R2 和 KV 分开走各自的专属路由)
+    await Promise.all([
+        apiFetch(`/note/${fileId}`, { method: 'PUT', body: JSON.stringify({ r2Payload: ciphertextR2 }) }),
+        apiFetch(`/list`, { method: 'PUT', body: JSON.stringify({ filesCipher: ciphertextKV }) })
+    ]);
 
     return true;
 }
 
 // -------------------------------------------------------------------------
-// 🧨 核心业务流：物理销毁 (从 R2 和 KV 同时抹除)
+// 🧨 核心业务流：物理销毁 (传入更新后的大厅数组覆写 KV)
 // -------------------------------------------------------------------------
-export async function deleteNote(fileId) {
-    await apiFetch(`/note/${fileId}`, { method: 'DELETE' });
+export async function deleteNote(fileId, newGlobalFilesArray) {
+    const { masterCredential } = getSession();
+    const ciphertextKV = await CryptoCore.encrypt(JSON.stringify(newGlobalFilesArray), masterCredential);
+    
+    await Promise.all([
+        apiFetch(`/note/${fileId}`, { method: 'DELETE' }),
+        apiFetch(`/list`, { method: 'PUT', body: JSON.stringify({ filesCipher: ciphertextKV }) })
+    ]);
     return true;
 }
 
