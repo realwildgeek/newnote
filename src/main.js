@@ -411,18 +411,17 @@ async function handleSync() {
     // (如果你在 UI 里加了创建时间的显示，也可以在这里 update UI)
 
     // 👈 修改这里：把 createdAt 也塞进 metaInfo 里发给 storage.js
-    const metaInfo = { 
-        title: titleStr, 
-        tags: currentTags, 
-        createdAt: creationTime, 
-        updatedAt: newUpdateTime 
-    };
+    const metaInfo = { id: State.currentFileId, title: titleStr, tags: currentTags, createdAt: creationTime, updatedAt: newUpdateTime };
+    const existingIndex = State.globalFiles.findIndex(f => f.id === State.currentFileId);
+    if (existingIndex >= 0) { State.globalFiles[existingIndex] = metaInfo; } 
+    else { State.globalFiles.push(metaInfo); }
 
     try {
         logStatus("⏳ 双轨加密推流中...");
-        await encryptAndUpload(State.currentFileId, bodyContent, metaInfo, State.customFileCredential);
+        await encryptAndUpload(State.currentFileId, bodyContent, metaInfo, State.customFileCredential, State.globalFiles);
         logStatus("✅ 安全同步完成");
-        refreshCloudList();
+        triggerSidebarUpdate(); // 直接更新 UI 即可
+        triggerFileHallUpdate();
     } catch (e) {
         // ...
     }
@@ -435,10 +434,12 @@ async function executeDelete(fileId) {
     if (!confirm("⚠️ 确认在云端彻底抹除该实体？此操作不可逆！")) return;
     try {
         logStatus("⏳ 执行物理销毁指令...");
-        await deleteNote(fileId);
+        State.globalFiles = State.globalFiles.filter(f => f.id !== fileId);
+        await deleteNote(fileId, State.globalFiles);
         logStatus("✅ 实体已销毁");
         if (State.currentFileId === fileId) { resetWorkspace(); }
-        refreshCloudList();
+        triggerSidebarUpdate(); 
+        triggerFileHallUpdate();
     } catch (e) { logStatus("❌ 销毁失败：" + e.message); }
 }
 
