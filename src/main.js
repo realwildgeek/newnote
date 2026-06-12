@@ -13,12 +13,7 @@ import { CryptoCore } from './core/crypto.js';
 // ----------------------------------------------------
 // ✒️ Milkdown 核心引擎与官方主题
 // ----------------------------------------------------
-import { Editor, rootCtx, defaultValueCtx, editorViewCtx, parserCtx, commandsCtx } from 'https://esm.sh/@milkdown/core';
-import { nord } from 'https://esm.sh/@milkdown/theme-nord';
-import { commonmark } from 'https://esm.sh/@milkdown/preset-commonmark';
-import { gfm } from 'https://esm.sh/@milkdown/preset-gfm';
-import { history } from 'https://esm.sh/@milkdown/plugin-history';
-import { listener, listenerCtx } from 'https://esm.sh/@milkdown/plugin-listener';
+import { Crepe } from 'https://esm.sh/@milkdown/crepe';
 
 // ----------------------------------------------------
 // 🪄 极客排版指令与 UI 插件 (Slash & Tooltip)
@@ -64,126 +59,36 @@ const defaultSystemTags = [
 ];
 
 // =========================================================================
-// ✒️ 编辑器引擎方法集
+// ✒️ 编辑器引擎方法集 (Crepe 满血重构版)
 // =========================================================================
 async function initMilkdown() {
-    // 1. 铸造 Slash (斜杠菜单) 引擎
-    const slash = slashFactory('geek-slash');
-    function slashPluginView(view) {
-        const content = document.createElement('div');
-        content.className = 'geek-slash-menu';
-        
-        // 🚀 满血版菜单 UI：增加了有序、任务、代码、分割线、表格
-        content.innerHTML = `
-        <div style="font-size: 11px; color: var(--text-muted); padding: 4px 8px; font-weight: bold;">基础排版</div>
-            <div class="slash-item" data-cmd="h1"><span style="margin-right:8px; opacity:0.6;">#️⃣</span>大标题 (H1)</div>
-            <div class="slash-item" data-cmd="h2"><span style="margin-right:8px; opacity:0.6;">##️⃣</span>中标题 (H2)</div>
-            <div class="slash-item" data-cmd="h3"><span style="margin-right:8px; opacity:0.6;">###️⃣</span>小标题 (H3)</div>
-            <div class="slash-item" data-cmd="quote"><span style="margin-right:8px; opacity:0.6;">❞</span>引用块</div>
-            <div class="slash-item" data-cmd="hr"><span style="margin-right:8px; opacity:0.6;">➖</span>分割线</div>
-            
-            <div style="font-size: 11px; color: var(--text-muted); padding: 8px 8px 4px 8px; font-weight: bold; border-top: 1px solid var(--border-light); margin-top: 4px;">列表与结构</div>
-            <div class="slash-item" data-cmd="ul"><span style="margin-right:8px; opacity:0.6;">⏺</span>无序列表</div>
-            <div class="slash-item" data-cmd="ol"><span style="margin-right:8px; opacity:0.6;">🔢</span>有序列表</div>
-            <div class="slash-item" data-cmd="code"><span style="margin-right:8px; opacity:0.6;">💻</span>代码块</div>
-            <div class="slash-item" data-cmd="table"><span style="margin-right:8px; opacity:0.6;">📊</span>插入表格</div>
-        `;
-        content.addEventListener('mousedown', (e) => {
-            e.preventDefault(); 
-            const item = e.target.closest('.slash-item');
-            if (!item) return;
-            
-            const cmd = item.dataset.cmd;
-            milkdownEditor.action((ctx) => {
-                const editorView = ctx.get(editorViewCtx);
-                const { state } = editorView;
-                
-                // 抹除触发器 "/"
-                editorView.dispatch(state.tr.delete(state.selection.from - 1, state.selection.from));
-                
-                const commands = ctx.get(commandsCtx);
+    // 1. 实例化 Crepe 全能装甲
+    milkdownEditor = new Crepe({
+        root: document.querySelector('#milkdown-editor'),
+        defaultValue: '',
+        // 默认开启全套现代特性：Tooltip(划词悬浮), Slash(斜杠菜单), BlockHandle(拖拽排序)
+    });
 
-                // 🚀 指令分发器：排除了内鬼，保留表格与代码块
-                switch (cmd) {
-                    case 'h1': commands.call(wrapInHeadingCommand.key, 1); break;
-                    case 'h2': commands.call(wrapInHeadingCommand.key, 2); break;
-                    case 'h3': commands.call(wrapInHeadingCommand.key, 3); break;
-                    case 'quote': commands.call(wrapInBlockquoteCommand.key); break;
-                    case 'hr': commands.call(insertHrCommand.key); break;
-                    case 'ul': commands.call(wrapInBulletListCommand.key); break;
-                    case 'ol': commands.call(wrapInOrderedListCommand.key); break;
-                    case 'code': commands.call(createCodeBlockCommand.key); break;
-                    case 'table': commands.call(insertTableCommand.key); break;
-                }
-            });
+    // 2. 绑定内容实时推流总线
+    milkdownEditor.on((listener) => {
+        listener.markdownUpdated((ctx, markdown) => {
+            currentMarkdownContent = markdown;
         });
+    });
 
-        const provider = new SlashProvider({ content });
-        return {
-            update: (updatedView, prevState) => provider.update(updatedView, prevState),
-            destroy: () => { provider.destroy(); content.remove(); },
-        };
-    } 
+    // 3. 引擎点火
+    await milkdownEditor.create();
+}
 
-    // 2. 🚀 新增：铸造 Tooltip (划词悬浮菜单) 引擎
-    const tooltip = tooltipFactory('geek-tooltip');
-    function tooltipPluginView(view) {
-        const content = document.createElement('div');
-        content.className = 'geek-tooltip-menu';
-        
-        // 渲染四个核心操作按钮
-        content.innerHTML = `
-            <div class="tooltip-item" data-cmd="strong" title="加粗 (Ctrl+B)">B</div>
-            <div class="tooltip-item italic" data-cmd="em" title="斜体 (Ctrl+I)">I</div>
-            <div class="tooltip-item strike" data-cmd="strike" title="删除线">S</div>
-            <div class="tooltip-item code" data-cmd="code" title="极客高亮">&lt;&gt;</div>
-        `;
+// 🚀 Crepe 提供了极简的官方 API，告别复杂的 ctx 分发
+function setEditorContent(markdownStr) {
+    if (!milkdownEditor) return;
+    milkdownEditor.setMarkdown(markdownStr); 
+    currentMarkdownContent = markdownStr;
+}
 
-        content.addEventListener('mousedown', (e) => {
-            e.preventDefault(); // 防止点击按钮时失去文本焦点
-            const item = e.target.closest('.tooltip-item');
-            if (!item) return;
-            
-            const cmd = item.dataset.cmd;
-            milkdownEditor.action((ctx) => {
-                const commands = ctx.get(commandsCtx);
-                // 🚀 悬浮指令分发器
-                switch (cmd) {
-                    case 'strong': commands.call(toggleStrongCommand.key); break;
-                    case 'em': commands.call(toggleEmphasisCommand.key); break;
-                    case 'strike': commands.call(toggleStrikethroughCommand.key); break;
-                    case 'code': commands.call(toggleInlineCodeCommand.key); break;
-                }
-            });
-        });
-
-        const provider = new TooltipProvider({ content });
-        return {
-            update: (updatedView, prevState) => provider.update(updatedView, prevState),
-            destroy: () => { provider.destroy(); content.remove(); },
-        };
-    }
-
-    // 3. 引擎点火并装载所有插件
-    milkdownEditor = await Editor.make()
-        .config((ctx) => {
-            ctx.set(rootCtx, document.querySelector('#milkdown-editor'));
-            ctx.set(defaultValueCtx, '');
-            ctx.get(listenerCtx).markdownUpdated((ctx, markdown) => {
-                currentMarkdownContent = markdown;
-            });
-            // 绑定我们捏好的两个 UI
-            ctx.set(slash.key, { view: slashPluginView });
-            ctx.set(tooltip.key, { view: tooltipPluginView }); // 👈 绑定悬浮菜单
-        })
-        .config(nord)
-        .use(commonmark)
-        .use(gfm)
-        .use(history)
-        .use(listener)
-        .use(slash)
-        .use(tooltip) // 👈 将悬浮菜单挂载到主线程
-        .create();
+function clearEditor() { 
+    if (milkdownEditor) milkdownEditor.setMarkdown(''); 
 }
 
 // =========================================================================
