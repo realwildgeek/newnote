@@ -4,7 +4,7 @@
 // 🛡️ 架构层级: Application 根节点 (Milkdown 强力驱动版)
 // =========================================================================
 
-import { initUI, logStatus } from './components/ui.js';
+import { initUI, logStatus, askForTagDetails } from './components/ui.js';
 import { initTripleLayerSecurity, logout, getSession } from './core/auth.js';
 import { fetchCloudList, downloadAndDecrypt, encryptAndUpload, deleteNote, generateSystemFileId, updateCloudTags } from './core/storage.js';
 import { TagManager } from './components/tags.js'; 
@@ -242,6 +242,9 @@ function bindGlobalEvents() {
     const btnNew = document.querySelector('.new-note-btn');
     if (btnNew) btnNew.addEventListener('click', resetWorkspace);
 
+    const btnLogout = document.getElementById('btn-logout');
+    if (btnLogout) btnLogout.addEventListener('click', logout);
+
     // 文件大厅 (固定桶 📁 图标直达)
     document.getElementById('btn-file-hall').addEventListener('click', () => {
         document.getElementById('fileBrowserModal').classList.add('active');
@@ -309,79 +312,6 @@ function bindGlobalEvents() {
         overlay.addEventListener('mousedown', (e) => {
             if (e.target === overlay) { overlay.classList.remove('active'); }
         });
-    });
-}
-
-// =========================================================================
-// 🏷️ 标签编辑弹窗逻辑引擎
-// =========================================================================
-const PRESET_COLORS = ['#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16', '#22c55e', '#0ea5e9', '#3b82f6', '#8b5cf6', '#ec4899'];
-function askForTagDetails(manager, existingTag = null) {
-    return new Promise((resolve) => {
-        const modal = document.getElementById('tagModal');
-        const titleEl = document.getElementById('tag-modal-title');
-        const inputName = document.getElementById('tag-name-input');
-        const colorPicker = document.getElementById('tag-color-picker');
-        const parentSelect = document.getElementById('tag-parent-select');
-        const btnConfirm = document.getElementById('tag-confirm');
-        const btnCancel = document.getElementById('tag-cancel');
-        const editActions = document.getElementById('tag-edit-actions');
-        const btnDelete = document.getElementById('btn-delete-tag');
-
-        titleEl.innerText = existingTag ? '编辑标签' : '新建标签';
-        inputName.value = existingTag ? existingTag.name : '';
-        let selectedColor = existingTag ? existingTag.color : PRESET_COLORS;
-        
-        editActions.style.display = existingTag ? 'block' : 'none';
-
-        colorPicker.innerHTML = '';
-        PRESET_COLORS.forEach(color => {
-            const swatch = document.createElement('div');
-            swatch.className = `color-swatch ${color === selectedColor ? 'selected' : ''}`;
-            swatch.style.backgroundColor = color;
-            swatch.addEventListener('click', () => {
-                document.querySelectorAll('.color-swatch').forEach(el => el.classList.remove('selected'));
-                swatch.classList.add('selected'); selectedColor = color;
-            });
-            colorPicker.appendChild(swatch);
-        });
-
-        parentSelect.innerHTML = '<option value="">无 (顶级标签) ></option>';
-        if (manager && manager.tags) {
-            manager.tags.forEach(tag => {
-                if (!tag.parentId && (!existingTag || tag.id !== existingTag.id)) { 
-                    const opt = document.createElement('option'); opt.value = tag.id; opt.innerText = tag.name + " >";
-                    if (existingTag && existingTag.parentId === tag.id) opt.selected = true;
-                    parentSelect.appendChild(opt);
-                }
-            });
-        }
-
-        const hasChildren = existingTag && manager && manager.tags.some(t => t.parentId === existingTag.id);
-        if (hasChildren) {
-            parentSelect.value = ""; parentSelect.disabled = true; parentSelect.style.opacity = "0.5"; parentSelect.style.cursor = "not-allowed";
-        } else {
-            parentSelect.disabled = false; parentSelect.style.opacity = "1"; parentSelect.style.cursor = "pointer";
-        }
-
-        modal.classList.add('active'); setTimeout(() => inputName.focus(), 100);
-
-        const cleanup = () => {
-            modal.classList.remove('active'); btnConfirm.removeEventListener('click', onConfirm);
-            btnCancel.removeEventListener('click', onCancel); 
-            btnDelete.removeEventListener('click', onDelete); inputName.removeEventListener('keydown', onEnter);
-        };
-
-        const onConfirm = () => {
-            const name = inputName.value.trim(); if (!name) return;
-            cleanup(); resolve({ action: 'save', data: { name, color: selectedColor, parentId: parentSelect.value || null }});
-        };
-        const onDelete = () => { cleanup(); resolve({ action: 'delete' }); };
-        const onCancel = () => { cleanup(); resolve(null); };
-        const onEnter = (e) => { if (e.key === 'Enter') onConfirm(); };
-
-        btnConfirm.addEventListener('click', onConfirm); btnCancel.addEventListener('click', onCancel);
-        btnDelete.addEventListener('click', onDelete); inputName.addEventListener('keydown', onEnter);
     });
 }
 
