@@ -30,7 +30,8 @@ export function getSession() {
 }
 
 export function logout() {
-    // 🚨 修复了原版的 BUG：清空了正确的内部变量名
     ActiveSession.jwt = null;
     ActiveSession.masterCredential = null;
+    // 物理重定向，彻底摧毁当前页面的内存状态
+    window.location.href = 'https://lt.838808.xyz/api/logout';
 }
