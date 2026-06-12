@@ -14,12 +14,14 @@ function buildFrontmatter(metaInfo) {
     return `---
 title: ${metaInfo.title || "无标题"}
 tags: [${metaInfo.tags ? metaInfo.tags.join(', ') : ''}]
+createdAt: ${metaInfo.createdAt || ""}
 updatedAt: ${metaInfo.updatedAt || ""}
 ---
 `;
 }
 
 function parseFrontmatter(rawText) {
+    // 正则提取 YAML 头和 Markdown 正文
     const match = rawText.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
     if (match) {
         return { content: match.trimStart() };
@@ -49,30 +51,36 @@ async function apiFetch(endpoint, options = {}) {
 }
 
 // -------------------------------------------------------------------------
-// 📡 核心业务流：拉取云端大厅，并在内存中批量解密 KV 索引
+// 📤 核心业务流：双轨盲化加密，发往云端 (已移除 hasCustomKey)
 // -------------------------------------------------------------------------
-export async function fetchCloudList() {
-    const { masterCredential } = getSession(); // 获取常驻内存的主密钥
-    const data = await apiFetch('/list');
-    
-    const decryptedFiles = [];
-    
-    // KV 传来的 data.files 是一个密文数组，必须用主密钥将其还原为 JSON
-    if (data.files && data.files.length > 0) {
-        for (const encryptedMeta of data.files) {
-            try {
-                const plainJsonStr = await CryptoCore.decrypt(encryptedMeta, masterCredential);
-                decryptedFiles.push(JSON.parse(plainJsonStr));
-            } catch (e) {
-                console.error("解密索引失败，跳过该项 (可能是密匙不匹配或数据损坏)");
-            }
-        }
-    }
+export async function encryptAndUpload(fileId, content, metaInfo, customCred) {
+    const { masterCredential } = getSession();
+    const activeCredential = customCred || masterCredential;
 
-    return { 
-        files: decryptedFiles, 
-        tags: data.tags || [] // 标签树暂时假设不加密（后续如果需要盲化标签树也可加密）
-    };
+    // 1. 铸造 R2 真身密文 (YAML + 正文 捆绑加密)
+    const fullDocument = buildFrontmatter(metaInfo) + content;
+    const ciphertextR2 = await CryptoCore.encrypt(fullDocument, activeCredential);
+
+    // 2. 铸造 KV 影子密文 (纯净的四项元数据，没有任何加密标志位)
+    const kvMetaStr = JSON.stringify({
+        id: fileId,
+        title: metaInfo.title,
+        tags: metaInfo.tags,
+        createdAt: metaInfo.createdAt, // 👈 新增创建时间
+        updatedAt: metaInfo.updatedAt
+    });
+    const ciphertextKV = await CryptoCore.encrypt(kvMetaStr, masterCredential);
+
+    // 3. 向后端发起推流请求
+    await apiFetch(`/note/${fileId}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+            metadata: ciphertextKV,
+            r2Payload: ciphertextR2
+        })
+    });
+
+    return true;
 }
 
 // -------------------------------------------------------------------------
