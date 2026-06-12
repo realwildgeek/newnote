@@ -395,15 +395,28 @@ async function loadAndDecryptNote(fileId, isRetry = false) {
 // =========================================================================
 async function handleSync() {
     try { getSession(); } catch (e) { logStatus("❌ 拦截：核心密匙未驻留"); return; }
+    
+    // 👈 修改这里：获取现有文件元数据，或者在新文件时记录当前时间
+    let existingMeta = State.globalFiles.find(f => f.id === State.currentFileId);
+    let creationTime = existingMeta ? existingMeta.createdAt : getFormattedTime();
+
     if (!State.currentFileId) { State.currentFileId = generateSystemFileId(); }
 
     const titleStr = document.getElementById('note-title').value || "无标题";
-    const bodyContent = currentMarkdownContent; // 从 Milkdown 引擎拉取 Markdown
+    const bodyContent = currentMarkdownContent; 
     const currentTags = [...currentNoteTags]; 
     const newUpdateTime = getFormattedTime();
+    
     document.getElementById('meta-updated').innerText = newUpdateTime;
+    // (如果你在 UI 里加了创建时间的显示，也可以在这里 update UI)
 
-    const metaInfo = { title: titleStr, tags: currentTags, updatedAt: newUpdateTime };
+    // 👈 修改这里：把 createdAt 也塞进 metaInfo 里发给 storage.js
+    const metaInfo = { 
+        title: titleStr, 
+        tags: currentTags, 
+        createdAt: creationTime, 
+        updatedAt: newUpdateTime 
+    };
 
     try {
         logStatus("⏳ 双轨加密推流中...");
@@ -411,10 +424,7 @@ async function handleSync() {
         logStatus("✅ 安全同步完成");
         refreshCloudList();
     } catch (e) {
-        if (e.message === "OCC_CONFLICT") {
-            logStatus("🚨 发生并发冲突！云端存在更新版本。");
-            alert("⚠️ 冲突警告：\n云端账本已被修改，为防止覆盖丢失，本次推流已被强制拦截。\n请刷新页面获取最新内容。");
-        } else { logStatus("❌ 同步失败：" + e.message); }
+        // ...
     }
 }
 
