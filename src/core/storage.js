@@ -25,7 +25,7 @@ function parseFrontmatter(rawText) {
     const match = rawText.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
     if (match) {
         // 🚨 核心修复点：必须加上，提取正则的第二个捕获组（也就是纯正文内容）
-        return { content: match.trimStart() };
+        return { content: match[2].trimStart() };
     }
     return { content: rawText };
 }
