@@ -4,7 +4,7 @@
 // 🛡️ 架构层级: Application 根节点 (Milkdown 强力驱动版)
 // =========================================================================
 
-import { initUI, logStatus, askForTagDetails, renderSidebarRecentList, renderNoteTagsUI, renderFileHallUI } from './components/ui.js';
+import { initUI, logStatus, askForTagDetails, renderSidebarRecentList, renderNoteTagsUI, renderFileHallUI, askForPassword } from './components/ui.js';
 import { initTripleLayerSecurity, logout, getSession } from './core/auth.js';
 import { fetchCloudList, downloadAndDecrypt, encryptAndUpload, deleteNote, generateSystemFileId, updateCloudTags } from './core/storage.js';
 import { TagManager } from './components/tags.js'; 
@@ -218,7 +218,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     try {
         logStatus("⏳ 正在注入三层安全密钥...");
-        const masterPassword = prompt("🔐 终端锁闭。请输入主控密匙唤醒系统：");
+        const masterPassword = await askForPassword("🔐 终端锁闭。请输入主控密匙唤醒系统：");
         if (!masterPassword) { logStatus("❌ 启动中止：拒绝访问，系统未被唤醒"); return; }
 
         // TODO: 接入真实的 SSO 后，Token 将从 URL 参数或 Cookie 中提取
@@ -294,8 +294,8 @@ function bindGlobalEvents() {
     // 独立密匙信封模式
     document.getElementById('btn-file-encrypt').addEventListener('click', async () => {
         if (!State.currentFileId) { alert("请先打开或新建一篇笔记，再进行加密操作。"); return; }
-        const pwd = prompt("🔐 信封模式：请输入当前文件的独立加密密码\n（注：留空并确认，将恢复为默认的主密匙加密）");
-        if (pwd === null) return; 
+        const pwd = await askForPassword("🔐 信封模式：请设置当前文件的独立加密密码\n（注：留空并确认，将恢复为主密匙模式）");
+        if (pwd === null) return;
 
         if (pwd.trim() === "") {
             State.customFileCredential = null;
@@ -378,10 +378,10 @@ async function loadAndDecryptNote(fileId, isRetry = false) {
         logStatus(`✅ 成功拉取：${fileMeta.title || '无标题'}`);
         
     } catch (e) {
-        // 🚨 核心修复点：使用 e.name === "OperationError" 捕捉浏览器底层的密码错误拦截
         if (e.name === "OperationError" || (e.message && e.message.includes("密码错误"))) {
             logStatus("🔒 文件受保护，需要独立密码");
-            const pwd = prompt("此文件受独立密码保护，请输入密码解锁：");
+            // 🚨 替换这里：
+            const pwd = await askForPassword("此实体受独立密码保护，请输入密匙解锁：");
             if (pwd) {
                 State.customFileCredential = await CryptoCore.createCredential(pwd);
                 return loadAndDecryptNote(fileId, true);
