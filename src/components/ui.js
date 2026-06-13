@@ -261,3 +261,86 @@ export function renderFileHallUI(files, tags, activeTagId, onFileClick, onDelete
 
     if (gridContainer.innerHTML === '') { gridContainer.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 40px; font-size: 14px;">该标签下暂无关联笔记 🛸</div>'; }
 }
+
+// =========================================================================
+// 🔐 核心工具：防偷窥异步密码暗盒 (替代原生 prompt)
+// =========================================================================
+export function askForPassword(message = "请输入独立密码：") {
+    return new Promise((resolve) => {
+        // 1. 铸造暗盒遮罩
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay active';
+        overlay.style.zIndex = '9999'; // 绝对置顶
+
+        // 2. 铸造控制面板
+        const modal = document.createElement('div');
+        modal.className = 'modal-content';
+        modal.style.maxWidth = '320px';
+
+        // 标题与提示词
+        const title = document.createElement('h3');
+        title.innerHTML = "🔐 终端受控";
+        title.style.marginBottom = '10px';
+
+        const desc = document.createElement('p');
+        desc.innerText = message;
+        desc.style.fontSize = '13px';
+        desc.style.color = 'var(--text-muted)';
+        desc.style.marginBottom = '20px';
+
+        // 🚨 核心防窥组件：原生的 password 类型 input
+        const input = document.createElement('input');
+        input.type = 'password';
+        input.className = 'tag-input'; // 复用你的输入框样式
+        input.style.width = '100%';
+        input.style.marginBottom = '20px';
+        input.style.letterSpacing = '3px'; // 让星号间距大一点，更具极客感
+        input.placeholder = "••••••••";
+
+        // 按钮组
+        const btnGroup = document.createElement('div');
+        btnGroup.className = 'form-actions';
+
+        const btnCancel = document.createElement('button');
+        btnCancel.className = 'btn-cancel';
+        btnCancel.innerText = "取消";
+
+        const btnConfirm = document.createElement('button');
+        btnConfirm.className = 'btn-save';
+        btnConfirm.innerText = "解密注入";
+
+        // 组装暗盒
+        btnGroup.appendChild(btnCancel);
+        btnGroup.appendChild(btnConfirm);
+        modal.appendChild(title);
+        modal.appendChild(desc);
+        modal.appendChild(input);
+        modal.appendChild(btnGroup);
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+
+        // 自动聚焦，随时准备输入
+        input.focus();
+
+        // 🧹 物理销毁函数：用完即毁，绝不在 DOM 留痕
+        const cleanup = () => { document.body.removeChild(overlay); };
+
+        // 🕹️ 事件监听：提交与摧毁
+        btnConfirm.addEventListener('click', () => {
+            const pwd = input.value;
+            cleanup();
+            resolve(pwd); // 返回明文给 CryptoCore 瞬间降维打击
+        });
+
+        btnCancel.addEventListener('click', () => {
+            cleanup();
+            resolve(null); // 返回 null 代表用户中止操作
+        });
+
+        // 键盘快捷键支持
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') btnConfirm.click();
+            if (e.key === 'Escape') btnCancel.click();
+        });
+    });
+}
