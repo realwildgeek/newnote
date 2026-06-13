@@ -363,14 +363,12 @@ async function loadAndDecryptNote(fileId, isRetry = false) {
 
     try {
         const fileMeta = State.globalFiles.find(f => f.id === fileId);
-        // 🚨 修复点 3：移除了对 wrappedKey 的致命校验
         if (!fileMeta) { throw new Error("缺失该文件的元数据"); }
 
-        // 此处的 decryptedData 现在应当是 Markdown 文本
+        // 下载并解密
         const decryptedData = await downloadAndDecrypt(fileId, null, State.customFileCredential);
         
         document.getElementById('note-title').value = fileMeta.title || "";
-        document.getElementById('meta-created').innerText = fileMeta.createdAt || "未知时间"; // 🚨 修复点 4：补全时间回显
         document.getElementById('meta-updated').innerText = fileMeta.updatedAt || "未知时间";
         
         setEditorContent(decryptedData || "");
@@ -378,18 +376,22 @@ async function loadAndDecryptNote(fileId, isRetry = false) {
         State.currentFileId = fileId; 
         triggerTagsUIUpdate(fileMeta.tags || []);
         logStatus(`✅ 成功拉取：${fileMeta.title || '无标题'}`);
+        
     } catch (e) {
-        if (e.message.includes("OperationError") || e.message.includes("密码错误")) {
+        // 🚨 核心修复点：使用 e.name === "OperationError" 捕捉浏览器底层的密码错误拦截
+        if (e.name === "OperationError" || (e.message && e.message.includes("密码错误"))) {
             logStatus("🔒 文件受保护，需要独立密码");
             const pwd = prompt("此文件受独立密码保护，请输入密码解锁：");
             if (pwd) {
                 State.customFileCredential = await CryptoCore.createCredential(pwd);
                 return loadAndDecryptNote(fileId, true);
             } else {
-                logStatus("❌ 已取消解密"); return;
+                logStatus("❌ 已取消解密"); 
+                return;
             }
         }
-        console.error(e); logStatus("❌ 解密中止：" + e.message);
+        console.error(e); 
+        logStatus("❌ 解密中止：" + (e.message || "未知底层拦截"));
     }
 }
 
