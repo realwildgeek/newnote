@@ -263,81 +263,85 @@ export function renderFileHallUI(files, tags, activeTagId, onFileClick, onDelete
 }
 
 // =========================================================================
-// 🔐 核心工具：防偷窥异步密码暗盒 (替代原生 prompt)
+// 🔐 核心工具：防偷窥异步密码输入框 (极简居中版)
 // =========================================================================
-export function askForPassword(message = "请输入独立密码：") {
+export function askForPassword(message = "请输入密码：") {
     return new Promise((resolve) => {
-        // 1. 铸造暗盒遮罩
+        // 1. 绝对居中的全屏遮罩 (Flexbox 布局)
         const overlay = document.createElement('div');
-        overlay.className = 'modal-overlay active';
-        overlay.style.zIndex = '9999'; // 绝对置顶
+        overlay.style.cssText = `
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(3px);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 9999;
+        `;
 
-        // 2. 铸造控制面板
+        // 2. 极简白盒容器
         const modal = document.createElement('div');
-        modal.className = 'modal-content';
-        modal.style.maxWidth = '320px';
+        modal.style.cssText = `
+            background: #ffffff; padding: 24px; border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 300px; display: flex; flex-direction: column; gap: 16px;
+        `;
 
-        // 标题与提示词
-        const title = document.createElement('h3');
-        title.innerHTML = "🔐 终端受控";
-        title.style.marginBottom = '10px';
-
-        const desc = document.createElement('p');
+        // 提示文案
+        const desc = document.createElement('div');
         desc.innerText = message;
-        desc.style.fontSize = '13px';
-        desc.style.color = 'var(--text-muted)';
-        desc.style.marginBottom = '20px';
+        desc.style.cssText = `font-size: 14px; color: #333; font-weight: 500; line-height: 1.5;`;
 
-        // 🚨 核心防窥组件：原生的 password 类型 input
+        // 原生密码输入框 (去除花哨样式，克制对齐)
         const input = document.createElement('input');
         input.type = 'password';
-        input.className = 'tag-input'; // 复用你的输入框样式
-        input.style.width = '100%';
-        input.style.marginBottom = '20px';
-        input.style.letterSpacing = '3px'; // 让星号间距大一点，更具极客感
         input.placeholder = "••••••••";
+        input.style.cssText = `
+            width: 100%; padding: 10px; border: 1px solid #d9d9d9; 
+            border-radius: 4px; font-size: 14px; outline: none; box-sizing: border-box;
+            letter-spacing: 2px;
+        `;
+        input.onfocus = () => input.style.borderColor = '#1890ff';
+        input.onblur = () => input.style.borderColor = '#d9d9d9';
 
-        // 按钮组
+        // 按钮组 (右对齐)
         const btnGroup = document.createElement('div');
-        btnGroup.className = 'form-actions';
+        btnGroup.style.cssText = `display: flex; justify-content: flex-end; gap: 12px; margin-top: 4px;`;
 
         const btnCancel = document.createElement('button');
-        btnCancel.className = 'btn-cancel';
         btnCancel.innerText = "取消";
+        btnCancel.style.cssText = `
+            padding: 6px 12px; border: 1px solid #d9d9d9; background: #fff; 
+            border-radius: 4px; cursor: pointer; font-size: 13px; color: #666;
+        `;
 
         const btnConfirm = document.createElement('button');
-        btnConfirm.className = 'btn-save';
-        btnConfirm.innerText = "解密注入";
+        btnConfirm.innerText = "确认";
+        btnConfirm.style.cssText = `
+            padding: 6px 12px; border: none; background: #1890ff; 
+            border-radius: 4px; cursor: pointer; font-size: 13px; color: #fff;
+        `;
 
-        // 组装暗盒
+        // 组装并挂载
         btnGroup.appendChild(btnCancel);
         btnGroup.appendChild(btnConfirm);
-        modal.appendChild(title);
         modal.appendChild(desc);
         modal.appendChild(input);
         modal.appendChild(btnGroup);
         overlay.appendChild(modal);
         document.body.appendChild(overlay);
 
-        // 自动聚焦，随时准备输入
         input.focus();
 
-        // 🧹 物理销毁函数：用完即毁，绝不在 DOM 留痕
         const cleanup = () => { document.body.removeChild(overlay); };
 
-        // 🕹️ 事件监听：提交与摧毁
         btnConfirm.addEventListener('click', () => {
-            const pwd = input.value;
             cleanup();
-            resolve(pwd); // 返回明文给 CryptoCore 瞬间降维打击
+            resolve(input.value); 
         });
 
         btnCancel.addEventListener('click', () => {
             cleanup();
-            resolve(null); // 返回 null 代表用户中止操作
+            resolve(null); 
         });
 
-        // 键盘快捷键支持
         input.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') btnConfirm.click();
             if (e.key === 'Escape') btnCancel.click();
