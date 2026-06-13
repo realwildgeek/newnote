@@ -51,7 +51,7 @@ async function apiFetch(endpoint, options = {}) {
 }
 
 // -------------------------------------------------------------------------
-// 📡 核心业务流：拉取云端大厅 (瞬间解密全量目录)
+// 📡 核心业务流：拉取云端大厅 (瞬间解密文件与标签的全量目录)
 // -------------------------------------------------------------------------
 export async function fetchCloudList() {
     const { masterCredential } = getSession(); 
@@ -60,17 +60,27 @@ export async function fetchCloudList() {
     let decryptedFiles = [];
     if (data.filesCipher) {
         try {
-            // 一次性解密几千篇笔记的目录，极致性能
             const plainJsonStr = await CryptoCore.decrypt(data.filesCipher, masterCredential);
             decryptedFiles = JSON.parse(plainJsonStr);
         } catch (e) {
-            console.error("解密上帝索引失败");
+            console.error("解密文件上帝索引失败");
+        }
+    }
+
+    let decryptedTags = [];
+    // 🚨 新增：解密标签树
+    if (data.tagsCipher) {
+        try {
+            const plainTagsStr = await CryptoCore.decrypt(data.tagsCipher, masterCredential);
+            decryptedTags = JSON.parse(plainTagsStr);
+        } catch (e) {
+            console.error("解密标签上帝索引失败");
         }
     }
 
     return { 
         files: decryptedFiles, 
-        tags: data.tags || [] 
+        tags: decryptedTags // 返回解密后的干净数组给主线程
     };
 }
 
@@ -129,12 +139,17 @@ export async function deleteNote(fileId, newGlobalFilesArray) {
 }
 
 // -------------------------------------------------------------------------
-// 🏷️ 核心业务流：更新 KV 标签树
+// 🏷️ 核心业务流：更新 KV 标签树 (彻底盲化版)
 // -------------------------------------------------------------------------
 export async function updateCloudTags(newTags) {
+    const { masterCredential } = getSession();
+    // 🚨 新增：将标签数组转化为 JSON 字符串后，用主密匙加密成黑盒
+    const tagsCipher = await CryptoCore.encrypt(JSON.stringify(newTags), masterCredential);
+
     await apiFetch('/tags', {
         method: 'PUT',
-        body: JSON.stringify({ tags: newTags })
+        // 发给后端的不再是明文 tags，而是密文 tagsCipher
+        body: JSON.stringify({ tagsCipher }) 
     });
     return true;
 }
