@@ -24,7 +24,8 @@ function parseFrontmatter(rawText) {
     // 正则提取 YAML 头和 Markdown 正文
     const match = rawText.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
     if (match) {
-        return { content: match.trimStart() }; // 修复了索引，确保只提取正文
+        // 🚨 核心修复点：必须加上，提取正则的第二个捕获组（也就是纯正文内容）
+        return { content: match.trimStart() };
     }
     return { content: rawText };
 }
