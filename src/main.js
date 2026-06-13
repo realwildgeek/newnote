@@ -218,7 +218,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     try {
         logStatus("⏳ 正在注入三层安全密钥...");
-        const masterPassword = await askForPassword("🔐 终端锁闭。请输入主控密匙唤醒系统：");
+        const masterPassword = await askForPassword("请输入主控密码：");
         if (!masterPassword) { logStatus("❌ 启动中止：拒绝访问，系统未被唤醒"); return; }
 
         // TODO: 接入真实的 SSO 后，Token 将从 URL 参数或 Cookie 中提取
@@ -294,7 +294,7 @@ function bindGlobalEvents() {
     // 独立密匙信封模式
     document.getElementById('btn-file-encrypt').addEventListener('click', async () => {
         if (!State.currentFileId) { alert("请先打开或新建一篇笔记，再进行加密操作。"); return; }
-        const pwd = await askForPassword("🔐 信封模式：请设置当前文件的独立加密密码\n（注：留空并确认，将恢复为主密匙模式）");
+        const pwd = await askForPassword("请输入独立加密密码（留空则恢复为主密码）：");
         if (pwd === null) return;
 
         if (pwd.trim() === "") {
@@ -381,7 +381,7 @@ async function loadAndDecryptNote(fileId, isRetry = false) {
         if (e.name === "OperationError" || (e.message && e.message.includes("密码错误"))) {
             logStatus("🔒 文件受保护，需要独立密码");
             // 🚨 替换这里：
-            const pwd = await askForPassword("此实体受独立密码保护，请输入密匙解锁：");
+            const pwd = await askForPassword("此文件受独立密码保护，请输入密码：");
             if (pwd) {
                 State.customFileCredential = await CryptoCore.createCredential(pwd);
                 return loadAndDecryptNote(fileId, true);
