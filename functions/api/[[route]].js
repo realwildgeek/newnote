@@ -19,8 +19,9 @@ export async function onRequest(context) {
         // 🗂️ [GET /api/list] 瞬间拉取全量双键索引
         if (path === 'list' && method === 'GET') {
             const filesCipher = await env.KV_STORE.get('global_files') || "";
-            const tagsData = await env.KV_STORE.get('global_tags', 'json') || [];
-            return new Response(JSON.stringify({ filesCipher, tags: tagsData }), { status: 200 });
+            // 🚨 修复点：不再用 'json' 模式解析，直接把密文字符串拿出来
+            const tagsCipher = await env.KV_STORE.get('global_tags') || ""; 
+            return new Response(JSON.stringify({ filesCipher, tagsCipher }), { status: 200 });
         }
 
         // 🗂️ [PUT /api/list] 全量覆盖文件索引黑盒
@@ -33,7 +34,8 @@ export async function onRequest(context) {
         // 🏷️ [PUT /api/tags] 全量覆盖标签树
         if (path === 'tags' && method === 'PUT') {
             const body = await request.json();
-            await env.KV_STORE.put('global_tags', JSON.stringify(body.tags));
+            // 🚨 修复点：直接把前端传来的密文存进去
+            await env.KV_STORE.put('global_tags', body.tagsCipher);
             return new Response(JSON.stringify({ success: true }), { status: 200 });
         }
 
